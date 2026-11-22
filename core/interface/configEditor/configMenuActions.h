@@ -43,5 +43,6 @@ void setFunctionKey8();
 void resetConfigShowPopup();
 void usbStorageEnter();
 void usbAudioChange();
+void openDawControlAction();
 
 #endif /* INTERFACE_CONFIGEDITOR_CONFIGMENUACTIONS_H_ */

@@ -377,6 +377,10 @@ const char firmUpdDesc[] = {
     "polyend.com."
 };
 
+const char dawControlDesc[] = { "Turns the Tracker into a USB controller for Ableton Live (needs the "
+                                "PolyendTrackerDAW remote script). Shift + Config opens it from any "
+                                "screen and also closes it. Settings: /DawControl.json on the SD card." };
+
 const char slaveClockCompDesc[] = { "Allows compensating latency of incoming clock signal by "
                                     "number of clock pulses, where 1 pulse = 1/6 of step. "
                                     "Use this with \"Clock in\" set to MIDI IN jack or USB. " };

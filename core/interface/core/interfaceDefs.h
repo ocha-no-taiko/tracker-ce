@@ -275,6 +275,8 @@ enum interfaceEvents
 
     eventActivateTestingProcedure,
 
+    eventActivateDawControl,
+
     interfaceEventsCount
 };
 

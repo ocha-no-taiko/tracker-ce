@@ -1,0 +1,50 @@
+{
+  "channel": 16,
+  "buttonCcBase": 20,
+  "jogCc": 70,
+  "helloCc": 119,
+  "padNoteBase": 36,
+
+  "feedback": {
+    "stateCcBase": 100,
+    "tempoMsbCc": 110,
+    "tempoLsbCc": 111,
+    "ringTrackCc": 112,
+    "ringSceneCc": 113,
+    "selectedTrackCc": 114
+  },
+
+  "ledValues": {
+    "stopped": 6,
+    "playing": 31,
+    "triggered": 63,
+    "recording": 52,
+    "triggeredToRecord": 42,
+    "armedEmpty": 2
+  },
+
+  "buttons": {
+    "Play":    { "press": "play_toggle",        "shift": "continue" },
+    "Rec":     { "press": "arrangement_record", "shift": "session_record" },
+    "Up":      { "press": "ring_up",            "shift": "ring_page_up" },
+    "Down":    { "press": "ring_down",          "shift": "ring_page_down" },
+    "Left":    { "press": "ring_left",          "shift": "ring_page_left" },
+    "Right":   { "press": "ring_right",         "shift": "ring_page_right" },
+    "Screen1": { "press": "scene_launch_1" },
+    "Screen2": { "press": "scene_launch_2" },
+    "Screen3": { "press": "scene_launch_3" },
+    "Screen4": { "press": "scene_launch_4" },
+    "Screen5": { "press": "stop_all_clips" },
+    "Screen6": { "press": "metronome",          "shift": "tap_tempo" },
+    "Insert":  { "press": "overdub" },
+    "Delete":  { "press": "stop_selected_track" },
+    "Copy":    { "press": "capture_midi" },
+    "Note":    { "press": "track_prev" },
+    "Instr":   { "press": "track_next" },
+    "Params":  { "press": "arm_selected_track" },
+    "Pattern": { "press": "undo",               "shift": "redo" },
+    "Song":    { "press": "tap_tempo" }
+  },
+
+  "jog": { "default": "scene_select", "shift": "tempo" }
+}

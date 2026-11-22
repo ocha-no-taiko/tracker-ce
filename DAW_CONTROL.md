@@ -1,0 +1,134 @@
+# DAW Control：Polyend Tracker を Ableton Live のコントローラーにする
+
+初代 Polyend Tracker のボタン・パッド・ジョグホイールで、Ableton Live の再生・録音・クリップ起動などを操作するための改造です。Push のような使い方を目指しています。
+
+- **ファーム側**（このリポジトリの `core/interface/dawControl/`）：Tracker に「DAW Control」画面を追加します。この画面では、操作を USB MIDI で Live に送り、Live から届いた状態をパッドの LED と画面に表示します。
+- **Live 側**（`ableton/PolyendTrackerDAW/`）：MIDI Remote Script（Control Surface）です。どのボタンで何をするかは、ここの `mapping.json` で決めます。
+
+> 対象は初代 Tracker（MK66）です。Tracker+ / Mini 用のビルドも通りますが、実機での確認はしていません。
+> 改造ファームは自己責任で使ってください（公式の README にある注意書きのとおり、保証の対象外です）。
+
+## できること（既定の割り当て）
+
+| Tracker の操作 | Live の動作 |
+|---|---|
+| Play | 再生／停止 |
+| Shift + Play | 続きから再生 |
+| Rec | Arrangement 録音 |
+| Shift + Rec | Session 録音 |
+| 矢印 | 赤枠（12 トラック × 4 シーン）を1つずつ移動 |
+| Shift + 矢印 | 赤枠を1ページずつ移動 |
+| パッド（Session モード） | 赤枠内のクリップを起動 |
+| パッド（Note モード） | 鍵盤として演奏（MIDI ch1） |
+| 画面下ボタン 1〜4 | シーン 1〜4 を起動 |
+| 画面下ボタン 5 | 全クリップ停止 |
+| 画面下ボタン 6 | メトロノーム（Shift でタップテンポ） |
+| 画面下ボタン 7 | Session／Note モード切り替え（Tracker 側で処理） |
+| 画面下ボタン 8 または Shift + Config | DAW Control 画面を閉じる |
+| Insert | オーバーダブ |
+| Delete | 選択トラックのクリップを停止 |
+| Copy | Capture MIDI |
+| Note／Instr | 前／次のトラックを選択 |
+| Params | 選択トラックのアーム |
+| Pattern | 元に戻す（Shift でやり直し） |
+| Song | タップテンポ |
+| ジョグホイール | シーン選択（Shift でテンポ ±1） |
+| Up／Down（Note モード中） | オクターブ上下（Tracker 側で処理） |
+
+パッドの LED はクリップの状態を明るさと点滅で表します（空＝消灯、停止中＝暗め、再生中＝最大、再生待ち・録音中＝点滅）。Tracker のパッドは単色なので、クリップの色は出ません。
+
+## 1. ファームを書き込む
+
+1. ビルド済みの `PolyendTracker_DAW_x.y.z.ptf` を、SD カードの `/Firmware/` に入れます（ビルド方法は下の「ビルド」を参照）。
+2. 必要なら `sd-card/DawControl.json` を SD カードの一番上（`/DawControl.json`）にコピーします。無くても既定値で動きます。
+3. Tracker で **Config > Firmware > Firmware update** を実行します。
+4. 起動しなくなった場合は、`/Firmware/` に公式の `.ptf` だけを入れて電源を入れ、本体底面のリセット穴を押すと戻せます（公式 README の「Emergency Recovery」）。
+
+## 2. Live にスクリプトを入れる
+
+```sh
+sh ableton/install.sh
+```
+
+`~/Music/Ableton/User Library/Remote Scripts/PolyendTrackerDAW/` にコピーされます。すでに `mapping.json` を編集していた場合は、その内容を残します。
+
+1. Live を再起動します。
+2. **設定 > Tempo & MIDI** の「コントロールサーフェス」で、空いている行に次を設定します。
+   - コントロールサーフェス：`PolyendTrackerDAW`
+   - 入力：`Tracker`
+   - 出力：`Tracker`
+3. 下の「MIDI ポート」で、入力の `Tracker` の **トラック** をオンにします（Note モードの演奏をトラックに届けるため）。
+
+## 3. 使う
+
+1. Tracker と Mac を USB でつなぎます。
+2. Tracker で **Shift + Config** を押すか、**Config > MIDI > DAW Control** を選びます。
+3. 画面下に「Ableton connected」と出れば接続できています。「Waiting for Ableton...」のままなら、Live の Control Surface の設定を見直してください。
+
+DAW Control 画面を開いている間は、Tracker 自身のシーケンサーは止まり、USB のクロックや MIDI の受信も止まります。画面を閉じると元に戻ります。
+
+## 設定を変える
+
+### Live 側：`mapping.json`（操作の割り当て）
+
+インストール先の `Remote Scripts/PolyendTrackerDAW/mapping.json` を編集して、Live の Control Surface をいったん「なし」にしてから選び直すと反映されます。
+
+```json
+"buttons": {
+  "Play": { "press": "play_toggle", "shift": "continue" }
+}
+```
+
+- ボタン名：`Screen1`〜`Screen8`、`Params`、`Performance`、`File`、`Config`、`Master`、`SampleLoad`、`SamplePlay`、`SampleEdit`、`SampleRec`、`Song`、`Note`、`Instr`、`Vol`、`Fx`、`Pattern`、`Play`、`Copy`、`Insert`、`Up`、`Delete`、`Rec`、`Shift`、`Left`、`Down`、`Right`
+- 使える動作：`play_toggle`、`continue`、`stop`、`arrangement_record`、`session_record`、`overdub`、`metronome`、`tap_tempo`、`tempo_up`、`tempo_down`、`undo`、`redo`、`capture_midi`、`stop_all_clips`、`stop_selected_track`、`arm_selected_track`、`track_prev`、`track_next`、`scene_prev`、`scene_next`、`ring_left`、`ring_right`、`ring_up`、`ring_down`、`ring_page_left`、`ring_page_right`、`ring_page_up`、`ring_page_down`、`scene_launch_1`〜`scene_launch_4`
+- ジョグ（`jog`）：`scene_select`、`track_select`、`tempo`
+- LED の明るさ（`ledValues`）：0＝消灯、1〜31＝点灯、33〜63＝点滅（明るさは値−32）
+
+### Tracker 側：SD カードの `/DawControl.json`
+
+MIDI チャンネル、Note モードの音域・スケール、Tracker 側で処理するボタン（終了・モード切り替え・オクターブ）、画面下のラベルを変えられます。見本は `sd-card/DawControl.json` です。DAW Control 画面を開くたびに読み直します。
+
+- ボタンは名前（`"Screen8"`、`"Up"` など）か番号で書けます。`null` にすると無効になります。
+- `controlChannel` などの MIDI 番号を変えたときは、`mapping.json` 側も同じ値にそろえてください。
+
+## 通信の取り決め
+
+USB MIDI のポートは1つなので、チャンネルで役割を分けています（既定値）。
+
+| 向き | 内容 | メッセージ |
+|---|---|---|
+| Tracker → Live | ボタン（ID 0〜43） | ch16 CC（20＋ID）、押す 127／離す 0 |
+| Tracker → Live | パッド（Session） | ch16 ノート 36〜83 |
+| Tracker → Live | パッド（Note） | ch1 ノート |
+| Tracker → Live | ジョグ | ch16 CC70、64＋変化量 |
+| 双方向 | 接続の合図 | ch16 CC119、127＝開いた／0＝閉じた |
+| Live → Tracker | パッド LED | ch16 ノート 36〜83、ベロシティ＝LED の値 |
+| Live → Tracker | 状態 | ch16 CC100〜104（再生、Arrangement 録音、Session 録音、オーバーダブ、メトロノーム） |
+| Live → Tracker | テンポ | ch16 CC110／111（テンポ×10 の上位7ビット／下位7ビット） |
+| Live → Tracker | 赤枠と選択トラック | ch16 CC112（トラック位置）、CC113（シーン位置）、CC114（選択トラック） |
+
+## ビルド
+
+GNU Arm Embedded Toolchain 10.3-2021.10 が必要です（公式 README の手順と同じ）。
+
+```sh
+make original ORIGINAL_POSTFIX=DAW_1.0.0
+```
+
+`build/PolyendTracker_DAW_1.0.0.ptf` ができます。
+
+## テスト
+
+```sh
+sh tests/dawControl/run.sh                         # ファームの JSON 読み込み（Mac/Linux で実行）
+python3 ableton/tools/test_script_offline.py       # Remote Script の動作（Live 不要）
+python3 ableton/tools/fake_tracker.py selftest 300 # Live と実際に通信（python-rtmidi が必要）
+```
+
+`fake_tracker.py` は「Tracker」という名前の仮想 MIDI ポートを作り、Tracker のふりをします。実行中に Live の Control Surface で入出力を `Tracker` にすると、自動テストが進みます。
+
+## まだできないこと
+
+- トラック名やクリップ名を Tracker の画面に出すこと（SysEx の対応が必要）
+- パッドのベロシティ（初代 Tracker のパッドはベロシティを送りません）
+- デバイスのパラメーター操作

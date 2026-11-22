@@ -248,6 +248,13 @@ cMenuItem melSlaveClockComp(menuMidi,
                             menuTypeItemListTextWithAction,
                             &slaveClockCompSetup);
 
+const strItemTypeActionButton dawControlSetup{ openDawControlAction, nullptr };
+cMenuItem melDawControl(menuMidi,
+                        "DAW Control",
+                        dawControlDesc,
+                        menuTypeItemActionButton,
+                        &dawControlSetup);
+
 //==================================================================================================================================================================
 // Firmware
 const strItemTypeActionButton updateFirmwareSetup{ firmwareUpgradeActivate, nullptr };

@@ -1,6 +1,7 @@
 #include "mtSequencer.h"
 
 #include "configEditor/configEditor.h"
+#include "dawControl/dawControl.h"
 #include "instrumentEditor/instrumentEditor.h"
 #include "patternEditor/patternEditor.h"
 #include "sampleEditor/sampleEditor.h"
@@ -137,6 +138,12 @@ void handleJackNoteOn(byte channel, byte pitch, byte velocity)
 }
 void handleUsbNoteOn(byte channel, byte pitch, byte velocity)
 {
+    if (dawControlIsActive())
+    {
+        dawControlReceiveUsbMidi(velocity == 0 ? 0x80 : 0x90, channel, pitch, velocity);
+        return;
+    }
+
     //	Serial.printf("ON\tch: %d, pitch: %d, velo: %d \r\n", channel, pitch,
     //					velocity);
     //	MIDI.sendNoteOn(pitch, velocity, channel);
@@ -228,6 +235,12 @@ void handleJackNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
 
 void handleUsbNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
 {
+    if (dawControlIsActive())
+    {
+        dawControlReceiveUsbMidi(0x80, channel, pitch, 0);
+        return;
+    }
+
 
     //	Serial.printf("OFF\tch: %d, pitch: %d, velo: %d\r\n", channel, pitch,
     //					velocity);
@@ -290,6 +303,12 @@ void handleJackControlChange(byte channel, byte number, byte value)
 
 void handleUSBControlChange(byte channel, byte number, byte value)
 {
+    if (dawControlIsActive())
+    {
+        dawControlReceiveUsbMidi(0xB0, channel, number, value);
+        return;
+    }
+
     if ((mtConfig.midi.ccInMode == ccIn_None) || (mtConfig.midi.ccInMode == ccIn_jack))
         return;
 
@@ -338,6 +357,9 @@ void handleJackProgramChange(byte channel, byte program)
 
 void handleUsbProgramChange(byte channel, byte program)
 {
+    if (dawControlIsActive())
+        return;
+
     if ((mtConfig.midi.programChangeInMode == programChangeIn_None) ||
         (mtConfig.midi.programChangeInMode == programChangeIn_jack))
     {
@@ -362,7 +384,7 @@ AUDIO_CORE_RAM void midiSetClockSubBlockOffsetUs(uint32_t offsetUs)
 
 static void sendMidiClockImmediate()
 {
-    if (sequencer.isRenderMode())
+    if (sequencer.isRenderMode() || dawControlIsActive())
         return;
     switch (mtConfig.midi.clkOut)
     {
@@ -381,7 +403,7 @@ static void sendMidiClockImmediate()
 
 AUDIO_CORE_RAM void sendMidiStart()
 {
-    if (sequencer.isRenderMode())
+    if (sequencer.isRenderMode() || dawControlIsActive())
         return;
     switch (mtConfig.midi.transportOut)
     {
@@ -399,7 +421,7 @@ AUDIO_CORE_RAM void sendMidiStart()
 }
 void sendMidiStop()
 {
-    if (sequencer.isRenderMode())
+    if (sequencer.isRenderMode() || dawControlIsActive())
         return;
     if (Platform* platform = TrackerImpl::getInstance()->getPlatform(); platform != nullptr)
     {
@@ -422,7 +444,7 @@ void sendMidiStop()
 
 AUDIO_CORE_RAM void sendMidiClock()
 {
-    if (sequencer.isRenderMode() || mtConfig.midi.clkOut == clockOut_Off)
+    if (sequencer.isRenderMode() || mtConfig.midi.clkOut == clockOut_Off || dawControlIsActive())
         return;
 
     Platform* platform = TrackerImpl::getInstance()->getPlatform();
@@ -438,6 +460,9 @@ AUDIO_CORE_RAM void sendMidiClock()
 
 void receiveUsbRealtime(uint8_t type)
 {
+    if (dawControlIsActive())
+        return;
+
     switch (type)
     {
         case Midi::MessageType::kClock:

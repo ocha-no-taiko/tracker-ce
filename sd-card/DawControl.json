@@ -1,0 +1,38 @@
+{
+  "controlChannel": 16,
+  "noteChannel": 1,
+
+  "buttonCcBase": 20,
+  "jogCc": 70,
+  "helloCc": 119,
+  "padNoteBase": 36,
+  "padVelocity": 127,
+
+  "feedback": {
+    "stateCcBase": 100,
+    "tempoMsbCc": 110,
+    "tempoLsbCc": 111,
+    "ringTrackCc": 112,
+    "ringSceneCc": 113,
+    "selectedTrackCc": 114
+  },
+
+  "noteMode": {
+    "root": 36,
+    "rowOffset": 12,
+    "velocity": 100,
+    "scale": [0, 2, 4, 5, 7, 9, 11],
+    "ledRoot": 20,
+    "ledInScale": 4,
+    "ledPressed": 31
+  },
+
+  "localButtons": {
+    "exit": "Screen8",
+    "mode": "Screen7",
+    "octaveUp": "Up",
+    "octaveDown": "Down"
+  },
+
+  "labels": ["Scene 1", "Scene 2", "Scene 3", "Scene 4", "Stop All", "Metro", "", "Exit"]
+}

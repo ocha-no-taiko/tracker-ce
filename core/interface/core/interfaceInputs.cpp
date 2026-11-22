@@ -1,5 +1,6 @@
 #include "core/interface.h"
 #include "core/interfacePopups.h"
+#include "dawControl/dawControl.h"
 
 #include "Platform.h"
 
@@ -44,6 +45,15 @@ void Interface::buttonChange(uint8_t n, uint8_t value)
         }
     }
 #endif
+
+    // Shift + Config opens the DAW Control screen from any screen.
+    if (n == interfaceButtonConfig && value == buttonPress && onScreenModule != nullptr &&
+        onScreenModule != &dawControl && operatingMode == mtOperatingModeRun &&
+        getPlatform()->getButtons()->isButtonPressed(interfaceButtonShift))
+    {
+        interfaceEnvents(eventActivateDawControl, onScreenModule, nullptr, nullptr);
+        return;
+    }
 
     if (value == buttonHold &&
         ((n >= 25 && n <= 27) || (n >= 30 && n <= 32) || n == interfaceButtonMiniMiddle))

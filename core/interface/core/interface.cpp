@@ -9,6 +9,7 @@
 #include "core/songTimer.h"
 #include "core/titleBar.h"
 
+#include "dawControl/dawControl.h"
 #include "fileBrowser/GlobalFileBrowser.h"
 #include "imageViewer/imageViewer.h"
 #include "instrumentEditor/instrumentEditor.h"
@@ -54,7 +55,7 @@ extern uint8_t isAudioOutMuted();
 //=======================================================================
 //=======================================================================
 
-const uint8_t Interface::modulesCount = 13;
+const uint8_t Interface::modulesCount = 14;
 const hModule Interface::modules[modulesCount] = {
     &projectEditor,    // 0
     &sampleImporter,   // 1
@@ -69,6 +70,7 @@ const hModule Interface::modules[modulesCount] = {
     &imageViewer,       // 10
     &globalFileBrowser, // 11
     &masterParams,      // 12
+    &dawControl,        // 13
 };
 
 const uint8_t Interface::modulesButtonsCount = 11;
@@ -668,6 +670,15 @@ void interfaceEnvents(uint8_t event, void* param1, void* param2, void* param3)
         {
             mtInterface.deactivateModule((hModule)param1);
             mtInterface.activateModule(&imageViewer, param2 == nullptr ? 0 : *((uint8_t*)param2));
+            break;
+        }
+        case eventActivateDawControl:
+        {
+            if (mtInterface.onScreenModule == &dawControl)
+                break;
+            if (param1 != nullptr)
+                mtInterface.deactivateModule((hModule)param1);
+            mtInterface.activateModule(&dawControl, 0);
             break;
         }
         case eventToggleActiveModule:
