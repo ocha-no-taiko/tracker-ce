@@ -11,6 +11,7 @@ fake_tracker.py selftest with Live running.
 import importlib.util
 import os
 import sys
+import tempfile
 import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -97,6 +98,8 @@ class FakeSong:
         self.arrangement_overdub = False
         self.metronome = False
         self.tempo = 120.0
+        self.signature_numerator = 4
+        self.signature_denominator = 4
         self.can_undo = self.can_redo = self.can_capture_midi = True
         self.calls = []
         self.tracks = [Obj() for _ in range(20)]
@@ -236,6 +239,9 @@ class ControlSurface:
     def set_highlighting_session_component(self, s):
         self.highlight = s
 
+    def update_display(self):
+        pass
+
     def disconnect(self):
         pass
 
@@ -301,6 +307,19 @@ def main():
     check("startup sends tempo 1200 tenths", last_cc(110) == 1200 >> 7 and last_cc(111) == 1200 & 127)
     check("LED values come from mapping.json", s._session.scene(0).clip_slot(0).values["set_started_value"] == 31)
     check("session ring is highlighted", s.highlight is s._session)
+    check("startup sends the time signature (CC115/116 = 4/4)", last_cc(115) == 4 and last_cc(116) == 4)
+
+    def sysex(command):
+        return [m for m in s.midi_out if m[:5] == (0xF0, 0x7D, 0x50, 0x54, command)]
+
+    def text_of(msg):
+        return "".join(chr(b) for b in msg[6:-1])
+
+    help_msgs = sysex(ptd.SYSEX_HELP_LINE)
+    check("startup sends the 15 help lines of mapping.json", len(help_msgs) == 15)
+    check("help line 0 is Params / Mixer", help_msgs and help_msgs[0][5] == 0 and text_of(help_msgs[0]) == "Params\tMixer")
+    check("a [] help entry is a blank line", len(help_msgs) > 5 and text_of(help_msgs[5]) == "")
+    check("SysEx bytes are 7 bit", all(b < 128 for m in help_msgs for b in m[1:-1]))
 
     press("Play")
     check("Play starts playback", SONG.is_playing)
@@ -472,6 +491,36 @@ def main():
     s._buttons[ptd.BUTTON_IDS["Shift"]].receive(127)
     s._hello.receive(0)
     check("hello off clears Shift", s._shift is False)
+
+    # Live Set names (keysender.js "info")
+    check("names from a saved Set's URL",
+          ptd.names_from_info("file:///Users/a/Songs/Test%20Project/Test.als\tTest") == ("Test.als", "Test"))
+    check("no URL = not saved", ptd.names_from_info("\tUntitled\n") == ("", ""))
+    check("non-ASCII becomes '?'", ptd.to_ascii("Caf\u00e9 \u66f2", 10) == "Caf? ?")
+    requests = []
+    keys_class = type(s._keys)
+    keys_class.request_info = lambda self, path: requests.append(path)
+    with tempfile.TemporaryDirectory() as tmp:
+        s._info_path = os.path.join(tmp, "liveinfo.txt")
+        with open(s._info_path, "w", encoding="utf-8") as f:
+            f.write("file:///x/My%20Song%20Project/My%20Song.als\tMy Song\n")
+        for _ in range(ptd.INFO_POLL_TICKS):
+            s.update_display()
+        names = sysex(ptd.SYSEX_FILE_NAME)
+        check("update_display sends the file name once a second",
+              names and text_of(names[-1]) == "My Song.als" and requests == [s._info_path])
+        check("and the project name", text_of(sysex(ptd.SYSEX_PROJECT_NAME)[-1]) == "My Song")
+        count = len(sysex(ptd.SYSEX_FILE_NAME))
+        for _ in range(ptd.INFO_POLL_TICKS):
+            s.update_display()
+        check("unchanged names are not sent again", len(sysex(ptd.SYSEX_FILE_NAME)) == count)
+        help_count = len(sysex(ptd.SYSEX_HELP_LINE))
+        s._hello.receive(127)
+        check("hello sends the names and help again",
+              len(sysex(ptd.SYSEX_FILE_NAME)) == count + 1 and len(sysex(ptd.SYSEX_HELP_LINE)) == help_count + 15)
+    SONG.signature_numerator, SONG.signature_denominator = 7, 8
+    fire_listeners("signature_numerator")
+    check("time signature changes are sent (7/8)", last_cc(115) == 7 and last_cc(116) == 8)
 
     press("SampleLoad")  # not mapped: must not raise
     check("unmapped button is ignored", True)

@@ -36,7 +36,7 @@
 | 画面下ボタン 5（Redo） | やり直し |
 | 画面下ボタン 6（Metro） | メトロノーム（Shift：タップテンポ） |
 | 画面下ボタン 7 | Session／Note モード切り替え（Tracker 側で処理） |
-| 画面下ボタン 8（Exit）または Shift + Config | DAW Control 画面を閉じる |
+| 画面下ボタン 8（EXIT）または Shift + Config | DAW Control 画面を閉じる |
 | Pattern | 元に戻す（Shift：やり直し） |
 | Song | タップテンポ |
 | ジョグホイール | 右に回すと拡大、左に回すと縮小（Arrangement の時間軸。Shift でテンポ ±1） |
@@ -47,6 +47,21 @@
 - ※2 Live の Home キーは、Arrangement では挿入マーカーを先頭へ、Session では先頭のトラックへ移動します。
 
 パッドの LED はクリップの状態を明るさと点滅で表します（空＝消灯、停止中＝暗め、再生中＝最大、再生待ち・録音中＝点滅）。Tracker のパッドは単色なので、クリップの色は出ません。
+
+## 画面（Live Tracker）
+
+DAW Control 画面は、次の内容を出します。
+
+- 左上：ロゴ、キャッチコピー、説明文、注意書き、詳細のリンク
+- 左下「> info」：開いている Live Set のファイル名とプロジェクト名、テンポ（BPM）、拍子（Beat）、メトロノームのオン／オフ（Metro）
+- 右「> help」：ボタンの割り当ての一覧（Live 側の `mapping.json` の `help` から届きます。届くまではファームに入っている既定の一覧）
+- 一番下：画面下ボタン 8 個のラベル
+
+文字は Anonymous Pro（プログラミング用の等幅フォント）です。画面を開いている間だけ、SD カードの `/LiveTracker.ptfont` を読み込んで使い、閉じると元のフォントに戻します。ファイルが無いときは、いつものフォントで表示します（文字幅が合わないので、長い文は途中で切れます）。
+
+- ファイル名は、Live のウィンドウから読み取ります（`keysender.js`）。キーボード操作と同じく、Live に「アクセシビリティ」の許可が要ります。保存していない Set は「(not saved)」と出ます。
+- 画面に出せるのは英数字と記号（ASCII）と © だけです。日本語などの文字は「?」になります。
+- 文言・色・フォントのパスは `/DawControl.json` の `screen` で変えられます（下の「設定を変える」）。
 
 ### キーボード操作について（※1）
 
@@ -61,10 +76,11 @@
 ## 1. ファームを書き込む
 
 1. ビルド済みの `PolyendTracker_DAW_x.y.z.ptf` を、SD カードの `/Firmware/` に入れます（ビルド方法は下の「ビルド」を参照）。
-2. 必要なら `sd-card/DawControl.json` を SD カードの一番上（`/DawControl.json`）にコピーします。無くても既定値で動きます。
+2. `sd-card/LiveTracker.ptfont` を SD カードの一番上（`/LiveTracker.ptfont`）にコピーします（画面のフォント）。
+3. 必要なら `sd-card/DawControl.json` を SD カードの一番上（`/DawControl.json`）にコピーします。無くても既定値で動きます。
    - 画面下のラベルはこの JSON が優先されます。古い JSON が SD カードに残っていると、ファームを新しくしてもラベルは古いままです。ラベルだけ変えたいときは、JSON を差し替えるだけで済みます（ファームの書き直しは不要）。
-3. Tracker で **Config > Firmware > Firmware update** を実行します。
-4. 起動しなくなった場合は、`/Firmware/` に公式の `.ptf` だけを入れて電源を入れ、本体底面のリセット穴を押すと戻せます（公式 README の「Emergency Recovery」）。
+4. Tracker で **Config > Firmware > Firmware update** を実行します。
+5. 起動しなくなった場合は、`/Firmware/` に公式の `.ptf` だけを入れて電源を入れ、本体底面のリセット穴を押すと戻せます（公式 README の「Emergency Recovery」）。
 
 ## 2. Live にスクリプトを入れる
 
@@ -72,7 +88,7 @@
 sh ableton/install.sh
 ```
 
-`~/Music/Ableton/User Library/Remote Scripts/PolyendTrackerDAW/` にコピーされます。すでにある `mapping.json` が新しい既定値と違う場合は、その内容を残し、新しい既定値を `mapping.default.json` として隣に置きます。新しい既定値に置き換えるときは次のとおりです。
+`~/Music/Ableton/User Library/Remote Scripts/PolyendTrackerDAW/` にコピーされます。`mapping.default.json` はいつも同梱の既定値です。すでにある `mapping.json` を自分で編集していた場合（前回の `mapping.default.json` と違う場合）は、その内容を残します。編集していなければ新しい既定値に置き換えます。編集したものを新しい既定値に置き換えるときは次のとおりです。
 
 ```sh
 RESET_MAPPING=1 sh ableton/install.sh
@@ -91,7 +107,7 @@ RESET_MAPPING=1 sh ableton/install.sh
 
 1. Tracker と Mac を USB でつなぎます。
 2. Tracker で **Shift + Config** を押すか、**Config > MIDI > DAW Control** を選びます。
-3. 画面下に「Ableton connected」と出れば接続できています。「Waiting for Ableton...」のままなら、Live の Control Surface の設定を見直してください。
+3. 「> info」の File Name にファイル名（未保存なら「(not saved)」）や BPM が出れば接続できています。「Waiting for Live...」のままなら、Live の Control Surface の設定を見直してください。
 
 DAW Control 画面を開いている間は、Tracker 自身のシーケンサーは止まり、USB のクロックや MIDI の受信も止まります。画面を閉じると元に戻ります。
 
@@ -111,10 +127,15 @@ DAW Control 画面を開いている間は、Tracker 自身のシーケンサー
 - 使える動作：`toggle_mixer`、`automation_mode`、`toggle_session_arrangement`、`toggle_browser`、`open_settings`、`toggle_main_devices`、`toggle_clip_view`、`toggle_device_view`、`device_prev`、`device_next`、`copy`、`paste`、`delete`、`home`、`cursor_up`／`down`／`left`／`right`、`select_up`／`down`／`left`／`right`、`re_enable_automation`、`track_activator`、`solo_selected_track`、`play_toggle`、`continue`、`stop`、`arrangement_record`、`session_record`、`overdub`、`metronome`、`tap_tempo`、`tempo_up`、`tempo_down`、`undo`、`redo`、`capture_midi`、`stop_all_clips`、`stop_selected_track`、`arm_selected_track`、`track_prev`、`track_next`、`scene_prev`、`scene_next`、`ring_left`、`ring_right`、`ring_up`、`ring_down`、`ring_page_left`、`ring_page_right`、`ring_page_up`、`ring_page_down`、`scene_launch_1`〜`scene_launch_4`、`key:<ショートカット>`（例：`key:cmd+shift+c`。修飾キーは `cmd`・`shift`・`alt`（`option`）・`ctrl`）
 - ジョグ（`jog`）：`zoom`、`scene_select`、`track_select`、`tempo`
 - LED の明るさ（`ledValues`）：0＝消灯、1〜31＝点灯、33〜63＝点滅（明るさは値−32）
+- 画面の「> help」（`help`）：`["ボタン", "説明"]` を上から順に並べます。`[]` は空行です。最大 16 行、ボタンは 11 文字・説明は 39 文字まで（`:` は画面側で付けます）。割り当てを変えたら、ここも合わせて直してください。
 
 ### Tracker 側：SD カードの `/DawControl.json`
 
-MIDI チャンネル、Note モードの音域・スケール、Tracker 側で処理するボタン（終了・モード切り替え・オクターブ）、画面下のラベルを変えられます。見本は `sd-card/DawControl.json` です。DAW Control 画面を開くたびに読み直します。
+MIDI チャンネル、Note モードの音域・スケール、Tracker 側で処理するボタン（終了・モード切り替え・オクターブ）、画面下のラベル、画面の文言と色を変えられます。見本は `sd-card/DawControl.json` です。DAW Control 画面を開くたびに読み直します。
+
+- `screen`：`font`（画面のフォントのパス。`""` でいつものフォント）、`title`、`tagline`、`credit`、`description`、`disclaimer`、`moreDetail`、`infoTitle`、`helpTitle`、`infoLabels`（File Name〜Metro の 5 つ）、`waiting`、`notSaved`、`metroOn`、`metroOff`、`colors`（`background`・`text`・`subText`・`line` を `"#RRGGBB"` で）
+- 文言は UTF-8 で書きます。© はそのまま「©」と書いてください（`\u00a9` のような書き方は読めません）。
+- 文字の位置と大きさは画面のデザインに合わせて固定です（`core/interface/dawControl/dawScreen.cpp`）。
 
 - ボタンは名前（`"Screen8"`、`"Up"` など）か番号で書けます。`null` にすると無効になります。
 - `controlChannel` などの MIDI 番号を変えたときは、`mapping.json` 側も同じ値にそろえてください。
@@ -134,21 +155,41 @@ USB MIDI のポートは1つなので、チャンネルで役割を分けてい�
 | Live → Tracker | 状態 | ch16 CC100〜104（再生、Arrangement 録音、Session 録音、オーバーダブ、メトロノーム） |
 | Live → Tracker | テンポ | ch16 CC110／111（テンポ×10 の上位7ビット／下位7ビット） |
 | Live → Tracker | 赤枠と選択トラック | ch16 CC112（トラック位置）、CC113（シーン位置）、CC114（選択トラック） |
+| Live → Tracker | 拍子 | ch16 CC115（分子）、CC116（分母） |
+| Live → Tracker | 画面の文字 | SysEx `F0 7D 50 54 <種類> <番号> <ASCII の文字列> F7`。種類 1＝ファイル名、2＝プロジェクト名、3＝help の行（`ボタン<TAB>説明`、番号 0 で一覧を作り直す） |
+
+SysEx の `7D` は非商用向けのメーカー ID です。SysEx を受け取るのは初代 Tracker（MK66）のビルドだけで、Tracker+ / Mini のビルドではファイル名と help は既定のままです。
 
 ## ビルド
 
 GNU Arm Embedded Toolchain 10.3-2021.10 が必要です（公式 README の手順と同じ）。
 
 ```sh
-make original ORIGINAL_POSTFIX=DAW_1.1.0
+make original ORIGINAL_POSTFIX=DAW_1.2.0
 ```
 
-`build/PolyendTracker_DAW_1.1.0.ptf` ができます。
+`build/PolyendTracker_DAW_1.2.0.ptf` ができます。
+
+### フォント
+
+`.ptfont` は `tools/fonts/make_ptfont.py` で TTF から作ります（Pillow が必要）。Anonymous Pro は SIL Open Font License です（`tools/fonts/AnonymousPro/OFL.txt`）。
+
+```sh
+# DAW Control 画面のフォント（本文 9px・小 6px・極小 5px など）
+uv run --with pillow tools/fonts/make_ptfont.py --layout daw \
+    tools/fonts/AnonymousPro/AnonymousPro-Regular.ttf tools/fonts/AnonymousPro/AnonymousPro-Bold.ttf \
+    sd-card/LiveTracker.ptfont --preview preview.png
+# Tracker 全体で使うフォント（SD カードの /Fonts/ に置き、Config > General > Display font で選ぶ）
+uv run --with pillow tools/fonts/make_ptfont.py \
+    tools/fonts/AnonymousPro/AnonymousPro-Regular.ttf tools/fonts/AnonymousPro/AnonymousPro-Bold.ttf \
+    sd-card/Fonts/AnonymousPro.ptfont
+```
 
 ## テスト
 
 ```sh
 sh tests/dawControl/run.sh                         # ファームの JSON 読み込み（Mac/Linux で実行）
+sh tests/dawControl/preview.sh out.png             # 画面の描画を Mac 上で画像にする（uv が必要）
 python3 ableton/tools/test_script_offline.py       # Remote Script の動作（Live 不要）
 python3 ableton/tools/fake_tracker.py selftest 300 # Live と実際に通信（python-rtmidi が必要）
 python3 ableton/tools/fake_tracker.py --port "Tracker Test" selftest 300  # 実機をつないだまま試すとき
@@ -158,6 +199,6 @@ python3 ableton/tools/fake_tracker.py --port "Tracker Test" selftest 300  # 実�
 
 ## まだできないこと
 
-- トラック名やクリップ名を Tracker の画面に出すこと（SysEx の対応が必要）
+- トラック名やクリップ名を Tracker の画面に出すこと
 - パッドのベロシティ（初代 Tracker のパッドはベロシティを送りません）
 - デバイスのパラメーター操作

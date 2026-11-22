@@ -59,6 +59,7 @@ void midiInit(UartMidi* uartMidi, UsbMidi* usbMidi)
     usbMidiReceiveActions.songPosition = handleUsbSongPosition;
     usbMidiReceiveActions.controlChange = handleUSBControlChange;
     usbMidiReceiveActions.programChange = handleUsbProgramChange;
+    usbMidiReceiveActions.sysEx = handleUsbSysEx;
 
     usbMidi->setReceiveActions(&usbMidiReceiveActions);
 }
@@ -353,6 +354,15 @@ void handleJackProgramChange(byte channel, byte program)
     }
 
     handleProgramChange(channel, program);
+}
+
+// Only the DAW Control screen uses SysEx (texts for its screen).
+void handleUsbSysEx(const uint8_t* data, uint16_t length, bool complete)
+{
+    if (dawControlIsActive())
+    {
+        dawControlReceiveUsbSysEx(data, length, complete);
+    }
 }
 
 void handleUsbProgramChange(byte channel, byte program)

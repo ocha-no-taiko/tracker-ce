@@ -22,6 +22,9 @@
 //     tempo                        : CC tempoMsbCc / tempoLsbCc, tempo * 10 as 14 bit
 //     session ring position        : CC ringTrackCc / ringSceneCc (0-based offset)
 //     selected track               : CC selectedTrackCc (0-based)
+//     time signature               : CC signatureNumeratorCc / signatureDenominatorCc
+//     texts for the screen         : SysEx F0 7D 50 54 <command> <index> <ASCII text> F7
+//                                    (see DawSysEx below)
 
 enum DawState : uint8_t
 {
@@ -33,12 +36,24 @@ enum DawState : uint8_t
     dawStateCount
 };
 
+// SysEx commands from the DAW. 7D is the manufacturer id for non-commercial
+// use, "PT" (50 54) marks the messages as ours.
+enum DawSysEx : uint8_t
+{
+    dawSysExFileName = 1,    // text: name of the Live Set file ("" = not saved yet)
+    dawSysExProjectName = 2, // text: name of its project folder
+    dawSysExHelpLine = 3,    // index: line, text: "key<TAB>value" ("" = blank line);
+                             // index 0 starts a new list
+};
+
 struct DawControlConfig
 {
     static constexpr uint8_t kLabelCount = 8;
     static constexpr uint8_t kLabelLength = 16;
     static constexpr uint8_t kMaxScale = 12;
     static constexpr uint8_t kNoButton = 255;
+    static constexpr uint8_t kInfoCount = 5; // File Name, Project Name, BPM, Beat, Metro
+    static constexpr uint8_t kInfoLabelLength = 16;
 
     uint8_t controlChannel; // 1..16
     uint8_t noteChannel;    // 1..16
@@ -55,6 +70,8 @@ struct DawControlConfig
     uint8_t ringTrackCc;
     uint8_t ringSceneCc;
     uint8_t selectedTrackCc;
+    uint8_t signatureNumeratorCc;
+    uint8_t signatureDenominatorCc;
 
     // Note mode
     uint8_t noteRoot;      // MIDI note of the bottom-left pad
@@ -73,6 +90,27 @@ struct DawControlConfig
     uint8_t octaveDownButton; // note mode only
 
     char labels[kLabelCount][kLabelLength];
+
+    // Screen ("screen" in the JSON). Texts are UTF-8; ASCII and the
+    // copyright sign are drawn, other characters show as '?'.
+    char fontPath[48]; // loaded while the screen is open; "" = keep the UI font
+    char title[32];
+    char tagline[40];
+    char credit[32];
+    char description[96];
+    char disclaimer[160];
+    char moreDetail[112];
+    char infoTitle[16];
+    char helpTitle[16];
+    char infoLabels[kInfoCount][kInfoLabelLength];
+    char waitingText[40];  // file name line before the DAW answers
+    char unsavedText[24];  // file name line for a Live Set that is not saved yet
+    char metroOn[8];
+    char metroOff[8];
+    uint32_t backgroundColor; // 0xRRGGBB
+    uint32_t textColor;
+    uint32_t subTextColor;    // description, disclaimer, link, credit
+    uint32_t lineColor;
 
     bool loadedFromSd;
 };

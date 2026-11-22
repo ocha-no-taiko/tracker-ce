@@ -96,6 +96,7 @@ void handleUSBControlChange(byte channel, byte number, byte value);
 
 void handleJackProgramChange(byte channel, byte program);
 void handleUsbProgramChange(byte channel, byte program);
+void handleUsbSysEx(const uint8_t* data, uint16_t length, bool complete);
 
 void receiveClock();
 void receiveStart();

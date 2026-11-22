@@ -1,12 +1,15 @@
 #include "dawControl/dawControl.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "mtPadsBacklight.h"
 #include "mtSequencer.h"
 
 #include "Platform.h"
+#include "ThemeManager.h"
 #include "TrackerImpl.h"
+#include "cr_section_macros.h"
 #include "core/interface.h"
 #include "core/songTimer.h"
 
@@ -36,6 +39,23 @@ inline void compilerBarrier()
 {
     __asm volatile("" ::: "memory");
 }
+
+// Complete SysEx messages from the DAW, queued the same way.
+constexpr uint8_t kSysExSlots = 32; // power of two
+constexpr uint8_t kSysExLength = 80;
+struct SysExMessage
+{
+    uint8_t length;
+    uint8_t data[kSysExLength];
+};
+__NOINIT(EXTERNAL_RAM) SysExMessage s_sysEx[kSysExSlots];
+volatile uint8_t s_sysExHead = 0;
+volatile uint8_t s_sysExTail = 0;
+// a message arriving in pieces
+__NOINIT(EXTERNAL_RAM) SysExMessage s_sysExPart;
+bool s_sysExTooLong = false;
+
+constexpr uint8_t kSysExHeader[4] = { 0xF0, 0x7D, 0x50, 0x54 };
 } // namespace
 
 bool dawControlIsActive()
@@ -56,6 +76,32 @@ void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, ui
     s_queue[head] = { status, channel, data1, data2 };
     compilerBarrier();
     s_queueHead = next;
+}
+
+void dawControlReceiveUsbSysEx(const uint8_t* data, uint16_t length, bool complete)
+{
+    for (uint16_t i = 0; i < length; i++)
+    {
+        if (s_sysExPart.length < kSysExLength)
+            s_sysExPart.data[s_sysExPart.length++] = data[i];
+        else
+            s_sysExTooLong = true;
+    }
+    if (!complete)
+        return;
+
+    bool ours = !s_sysExTooLong && s_sysExPart.length >= 7 &&
+                memcmp(s_sysExPart.data, kSysExHeader, sizeof(kSysExHeader)) == 0;
+    uint8_t head = s_sysExHead;
+    uint8_t next = (head + 1) & (kSysExSlots - 1);
+    if (ours && next != s_sysExTail)
+    {
+        s_sysEx[head] = s_sysExPart;
+        compilerBarrier();
+        s_sysExHead = next;
+    }
+    s_sysExPart.length = 0;
+    s_sysExTooLong = false;
 }
 
 //==============================================================================
@@ -93,11 +139,19 @@ void cDawControl::start([[maybe_unused]] uint32_t options)
     ringTrack = 0;
     ringScene = 0;
     selectedTrack = 0;
+    signatureNumerator = 4;
+    signatureDenominator = 4;
     connected = false;
+    namesReceived = false;
+    fileName[0] = '\0';
+    projectName[0] = '\0';
     sessionMode = true;
     octaveShift = 0;
+    infoDirty = false;
+    helpDirty = false;
 
     songTimer.hide();
+    loadScreenFont();
 
     for (uint8_t i = 0; i < interfaceButtonsCount; i++)
     {
@@ -107,6 +161,9 @@ void cDawControl::start([[maybe_unused]] uint32_t options)
     ip->setPadsGlobal(functPads);
 
     s_queueTail = s_queueHead;
+    s_sysExTail = s_sysExHead;
+    s_sysExPart.length = 0;
+    s_sysExTooLong = false;
     s_active = true;
 
     padsBacklight.clearGlobalPads(1, 1, 0);
@@ -136,8 +193,36 @@ void cDawControl::stop()
     }
     padsBacklight.clearGlobalPads(1, 1, 0);
 
+    restoreUiFont();
     songTimer.show();
     moduleRefresh = 0;
+}
+
+// The screen's own font (LiveTracker.ptfont) replaces the UI font while the
+// screen is open.
+void cDawControl::loadScreenFont()
+{
+    screenFont = false;
+    fontSwapped = false;
+    const char* path = dawControlConfig.fontPath;
+    FileSystem* fs = platform->getFileSystem();
+    if (path[0] == '\0' || fs == nullptr || !fs->isSdCardInserted() || !fs->exists(path))
+        return;
+
+    // A file that fails half way may have replaced some of the UI fonts.
+    fontSwapped = true;
+    screenFont = display.loadCustomFontFromSD(fs, path);
+    if (!screenFont)
+        restoreUiFont();
+}
+
+void cDawControl::restoreUiFont()
+{
+    if (!fontSwapped)
+        return;
+    fontSwapped = false;
+    screenFont = false;
+    ThemeManager::applyFont(ThemeManager::getCurrentFontIndex());
 }
 
 void cDawControl::update()
@@ -152,12 +237,20 @@ void cDawControl::update()
 
         handleIncoming(ev.status, ev.channel, ev.data1, ev.data2);
     }
+    for (uint8_t n = 0; n < kSysExSlots && s_sysExTail != s_sysExHead; n++)
+    {
+        uint8_t tail = s_sysExTail;
+        compilerBarrier();
+        handleSysEx(s_sysEx[tail].data, s_sysEx[tail].length);
+        compilerBarrier();
+        s_sysExTail = (tail + 1) & (kSysExSlots - 1);
+    }
 
     bool refreshed = false;
-    if (statesDirty)
+    if (helpDirty)
     {
-        statesDirty = false;
-        refreshStates();
+        helpDirty = false;
+        refreshHelp();
         refreshed = true;
     }
     if (infoDirty)
@@ -224,7 +317,18 @@ void cDawControl::handleIncoming(uint8_t status, [[maybe_unused]] uint8_t channe
     if (data1 >= cfg.stateCcBase && data1 < cfg.stateCcBase + dawStateCount)
     {
         states[data1 - cfg.stateCcBase] = data2 > 0 ? 1 : 0;
-        statesDirty = true;
+        if (data1 - cfg.stateCcBase == dawStateMetronome)
+            infoDirty = true;
+    }
+    else if (data1 == cfg.signatureNumeratorCc)
+    {
+        signatureNumerator = data2 > 0 ? data2 : 1;
+        infoDirty = true;
+    }
+    else if (data1 == cfg.signatureDenominatorCc)
+    {
+        signatureDenominator = data2 > 0 ? data2 : 1;
+        infoDirty = true;
     }
     else if (data1 == cfg.tempoMsbCc)
     {
@@ -254,6 +358,44 @@ void cDawControl::handleIncoming(uint8_t status, [[maybe_unused]] uint8_t channe
     {
         // The script was (re)loaded: answer so it sends its state again.
         sendCc(cfg.helloCc, 127);
+    }
+}
+
+// F0 7D 50 54 <command> <index> <ASCII text> F7 (see DawSysEx)
+void cDawControl::handleSysEx(const uint8_t* data, uint16_t length)
+{
+    if (length < 7 || data[length - 1] != 0xF7)
+        return;
+
+    char text[kSysExLength];
+    uint8_t n = 0;
+    for (uint16_t i = 6; i + 1 < length && n + 1u < sizeof(text); i++)
+    {
+        uint8_t c = data[i];
+        text[n++] = (c == '\t' || (c >= 0x20 && c < 0x7F)) ? (char)c : '?';
+    }
+    text[n] = '\0';
+
+    if (!connected)
+        connected = true;
+
+    switch (data[4])
+    {
+        case dawSysExFileName:
+            snprintf(fileName, sizeof(fileName), "%s", text);
+            namesReceived = true;
+            infoDirty = true;
+            break;
+        case dawSysExProjectName:
+            snprintf(projectName, sizeof(projectName), "%s", text);
+            namesReceived = true;
+            infoDirty = true;
+            break;
+        case dawSysExHelpLine:
+            setHelpLine(data[5], text);
+            helpDirty = true;
+            break;
+        default: break;
     }
 }
 
@@ -457,7 +599,6 @@ void cDawControl::toggleMode()
     else
         showNoteLeds();
 
-    infoDirty = true;
     refreshBottomLabels();
     display.synchronizeRefresh();
 }

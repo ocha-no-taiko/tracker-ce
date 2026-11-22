@@ -3,9 +3,10 @@
 # Restart Live afterwards, then choose "PolyendTrackerDAW" in
 # Settings > Link, Tempo & MIDI > Control Surface.
 #
-# An existing mapping.json is kept (your own button assignments). The new
-# defaults are then saved next to it as mapping.default.json.
-# To replace it with the new defaults instead:
+# mapping.default.json is always the shipped mapping. An installed
+# mapping.json that you have edited (it differs from the mapping.default.json
+# installed with it) is kept; an unedited one is updated to the new defaults.
+# To replace an edited one with the new defaults:
 #     RESET_MAPPING=1 sh ableton/install.sh
 set -eu
 
@@ -18,18 +19,23 @@ RESET_MAPPING="${RESET_MAPPING:-0}"
 mkdir -p "$DEST_ROOT"
 rm -f "$BACKUP"
 if [ -f "$DEST/mapping.json" ] && [ "$RESET_MAPPING" != "1" ]; then
-    cp "$DEST/mapping.json" "$BACKUP"
+    # Unedited = the same as the defaults it was installed with.
+    if [ -f "$DEST/mapping.default.json" ] && cmp -s "$DEST/mapping.json" "$DEST/mapping.default.json"; then
+        :
+    else
+        cp "$DEST/mapping.json" "$BACKUP"
+    fi
 fi
 rm -rf "$DEST"
 mkdir -p "$DEST"
 cp "$SRC/__init__.py" "$SRC/PolyendTrackerDAW.py" "$SRC/keysender.js" "$SRC/mapping.json" "$DEST/"
+cp "$SRC/mapping.json" "$DEST/mapping.default.json"
 if [ -f "$BACKUP" ]; then
     if cmp -s "$BACKUP" "$SRC/mapping.json"; then
         rm -f "$BACKUP"
     else
-        cp "$SRC/mapping.json" "$DEST/mapping.default.json"
         mv "$BACKUP" "$DEST/mapping.json"
-        echo "Kept your existing mapping.json (new defaults: mapping.default.json)."
+        echo "Kept your edited mapping.json (new defaults: mapping.default.json)."
         echo "To use the new defaults: RESET_MAPPING=1 sh ableton/install.sh"
     fi
 fi

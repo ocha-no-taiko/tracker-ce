@@ -9,8 +9,14 @@
 //
 // A key is only sent while Live is the frontmost app, and it is posted to
 // Live's process only, so it can never land in another app.
+//
+// The line "info <file path>" asks for the Live Set that is open: the
+// helper writes "<document URL><TAB><window title>" to that file (the URL is
+// empty while the Set has not been saved). The script shows the names on
+// the Tracker's screen.
+//
 // Live needs the Accessibility permission (System Settings > Privacy &
-// Security > Accessibility) for this to work.
+// Security > Accessibility) for both.
 //
 //     osascript -l JavaScript keysender.js <Live pid>
 
@@ -39,7 +45,44 @@ function postKey(pid, keyCode, flags) {
     $.CGEventPostToPid(pid, up);
 }
 
+ObjC.bindFunction("AXUIElementCreateApplication", ["id", ["int"]]);
+ObjC.bindFunction("AXUIElementCopyAttributeValue", ["int", ["id", "id", "id*"]]);
+
+function axValue(element, attribute) {
+    var out = Ref();
+    var error = $.AXUIElementCopyAttributeValue(element, $(attribute), out);
+    return error === 0 ? out[0] : null;
+}
+
+function axString(element, attribute) {
+    var value = axValue(element, attribute);
+    if (value === null || value === undefined)
+        return "";
+    try {
+        return ObjC.unwrap(value) || "";
+    } catch (e) {
+        return "";
+    }
+}
+
+// Writes "<document URL>\t<title>" of Live's main window to path.
+function writeInfo(pid, path) {
+    var app = $.AXUIElementCreateApplication(pid);
+    var text = "";
+    var win = axValue(app, "AXMainWindow");
+    if (win === null || win === undefined)
+        win = axValue(app, "AXFocusedWindow");
+    if (win !== null && win !== undefined)
+        text = axString(win, "AXDocument").replace(/[\t\n]/g, " ") + "\t" +
+               axString(win, "AXTitle").replace(/[\t\n]/g, " ");
+    $(text + "\n").writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+}
+
 function handle(pid, line) {
+    if (line.indexOf("info ") === 0) {
+        writeInfo(pid, line.substring(5).replace(/\r$/, ""));
+        return;
+    }
     var parts = line.trim().split(/\s+/);
     if (parts.length < 1 || parts[0] === "")
         return;

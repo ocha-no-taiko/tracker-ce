@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+from urllib.parse import unquote, urlparse
 
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
@@ -16,7 +17,7 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_CC_TYPE, MIDI_NOTE_TYPE
 from _Framework.SessionComponent import SessionComponent
 
-SCRIPT_VERSION = "1.2.0"
+SCRIPT_VERSION = "1.3.0"
 NUM_TRACKS = 12
 NUM_SCENES = 4
 
@@ -48,6 +49,8 @@ DEFAULT_MAPPING = {
         "ringTrackCc": 112,
         "ringSceneCc": 113,
         "selectedTrackCc": 114,
+        "signatureNumeratorCc": 115,
+        "signatureDenominatorCc": 116,
     },
     "ledValues": {
         "stopped": 6,
@@ -60,7 +63,20 @@ DEFAULT_MAPPING = {
     "buttons": {},
     "jog": {"default": "zoom", "shift": "tempo"},
     "ringFollowsSelection": True,
+    "help": [],
 }
+
+# SysEx to the Tracker: F0 7D 50 54 <command> <index> <ASCII text> F7
+# (7D = non-commercial manufacturer id; see core/interface/dawControl/dawControlConfig.h)
+SYSEX_HEADER = (0xF0, 0x7D, 0x50, 0x54)
+SYSEX_FILE_NAME = 1
+SYSEX_PROJECT_NAME = 2
+SYSEX_HELP_LINE = 3
+MAX_NAME = 47        # characters the Tracker keeps for a name
+MAX_HELP_LINES = 16
+MAX_HELP_KEY = 11
+MAX_HELP_VALUE = 39
+INFO_POLL_TICKS = 10  # update_display runs about every 100 ms
 
 # macOS virtual key codes and CGEventFlags for "key:" actions (keysender.js).
 KEY_CODES = {
@@ -130,15 +146,22 @@ class KeySender:
         self._warned = False
 
     def send(self, code, flags):
+        return self._write("%d %d\n" % (code, flags))
+
+    def request_info(self, path):
+        """Asks the helper to write Live's document URL and window title to path."""
+        return self._write("info %s\n" % path)
+
+    def _write(self, line):
         if sys.platform != "darwin":
             if not self._warned:
-                self._log("PolyendTrackerDAW: keyboard shortcuts only work on macOS")
+                self._log("PolyendTrackerDAW: keyboard shortcuts and file names only work on macOS")
                 self._warned = True
             return False
         if self._proc is None or self._proc.poll() is not None:
             self._start()
         try:
-            self._proc.stdin.write(("%d %d\n" % (code, flags)).encode("ascii"))
+            self._proc.stdin.write(line.encode("utf-8"))
             self._proc.stdin.flush()
             return True
         except (OSError, ValueError, AttributeError) as e:
@@ -192,6 +215,44 @@ def clamp(value, low, high):
     return max(low, min(high, value))
 
 
+def to_ascii(text, limit):
+    """What the Tracker can show: printable ASCII, anything else as '?'."""
+    out = "".join(c if 32 <= ord(c) < 127 else "?" for c in str(text))
+    return out[:limit]
+
+
+def sysex_text(command, index, text):
+    return SYSEX_HEADER + (command & 0x7F, index & 0x7F) + tuple(ord(c) for c in text) + (0xF7,)
+
+
+def names_from_info(text):
+    """(file name, project name) from the helper's "<document URL>\t<title>".
+    Both are empty while the Live Set has not been saved."""
+    url = text.split("\t", 1)[0].strip()
+    if not url:
+        return "", ""
+    path = unquote(urlparse(url).path) if url.startswith("file:") else url
+    path = path.rstrip("/")
+    file_name = os.path.basename(path)
+    project = os.path.basename(os.path.dirname(path))
+    if project.endswith(" Project"):
+        project = project[:-len(" Project")]
+    return file_name, project
+
+
+def help_lines(entries):
+    """mapping.json "help": [["Params", "Mixer"], [], ...] -> "key\tvalue" lines."""
+    lines = []
+    for entry in entries[:MAX_HELP_LINES]:
+        if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+            key = to_ascii(entry[0], MAX_HELP_KEY)
+            value = to_ascii(entry[1], MAX_HELP_VALUE)
+            lines.append("%s\t%s" % (key, value) if key or value else "")
+        else:
+            lines.append("")
+    return lines
+
+
 class PolyendTrackerDAW(ControlSurface):
 
     def __init__(self, c_instance):
@@ -204,6 +265,9 @@ class PolyendTrackerDAW(ControlSurface):
         self._shift = False
         self._keys = KeySender(here, self.log_message)
         self._track_before_master = None
+        self._info_path = os.path.join(here, "liveinfo.txt")
+        self._info_ticks = 0
+        self._names = None  # (file name, project name) last sent
         self._actions = self._build_actions()
         self._button_actions = self._resolve_buttons(m.get("buttons", {}))
 
@@ -215,7 +279,7 @@ class PolyendTrackerDAW(ControlSurface):
         self.log_message("PolyendTrackerDAW %s loaded (channel %d)" % (SCRIPT_VERSION, self._channel + 1))
         self.show_message("Polyend Tracker DAW Control connected")
         self._send_cc(int(m["helloCc"]), 127)
-        self._send_all_state()
+        self._send_all_state(texts=True)
 
     # ------------------------------------------------------------------ setup
     def _setup_controls(self):
@@ -274,6 +338,8 @@ class PolyendTrackerDAW(ControlSurface):
         self.register_slot(song, self._send_transport_state, "arrangement_overdub")
         self.register_slot(song, self._send_transport_state, "metronome")
         self.register_slot(song, self._send_tempo, "tempo")
+        self.register_slot(song, self._send_signature, "signature_numerator")
+        self.register_slot(song, self._send_signature, "signature_denominator")
         self.register_slot(song.view, self._on_selected_track, "selected_track")
         self.register_slot(song.view, self._follow_selection, "selected_scene")
 
@@ -314,7 +380,7 @@ class PolyendTrackerDAW(ControlSurface):
     def _on_hello(self, value):
         if value > 0:
             # The Tracker opened its DAW Control screen: send everything again.
-            self._send_all_state(force_leds=True)
+            self._send_all_state(force_leds=True, texts=True)
         else:
             self._shift = False
 
@@ -588,6 +654,40 @@ class PolyendTrackerDAW(ControlSurface):
         self._send_cc(int(self._feedback["tempoMsbCc"]), tenths >> 7)
         self._send_cc(int(self._feedback["tempoLsbCc"]), tenths & 0x7F)
 
+    def _send_signature(self):
+        song = self.song()
+        self._send_cc(int(self._feedback["signatureNumeratorCc"]), clamp(song.signature_numerator, 1, 127))
+        self._send_cc(int(self._feedback["signatureDenominatorCc"]), clamp(song.signature_denominator, 1, 127))
+
+    def _send_names(self, names):
+        file_name, project = names
+        self._send_midi(sysex_text(SYSEX_FILE_NAME, 0, to_ascii(file_name, MAX_NAME)))
+        self._send_midi(sysex_text(SYSEX_PROJECT_NAME, 0, to_ascii(project, MAX_NAME)))
+
+    def _send_help(self):
+        for index, line in enumerate(help_lines(self._mapping.get("help") or [])):
+            self._send_midi(sysex_text(SYSEX_HELP_LINE, index, line))
+
+    def _read_names(self):
+        try:
+            with open(self._info_path, "r", encoding="utf-8") as f:
+                return names_from_info(f.readline())
+        except OSError:
+            return None
+
+    def update_display(self):
+        super().update_display()
+        self._info_ticks += 1
+        if self._info_ticks < INFO_POLL_TICKS:
+            return
+        self._info_ticks = 0
+        # The answer to the previous request; a new one is read next time.
+        names = self._read_names()
+        if names is not None and names != self._names:
+            self._names = names
+            self._send_names(names)
+        self._keys.request_info(self._info_path)
+
     def _send_ring(self):
         self._send_cc(int(self._feedback["ringTrackCc"]), clamp(self._session.track_offset(), 0, 127))
         self._send_cc(int(self._feedback["ringSceneCc"]), clamp(self._session.scene_offset(), 0, 127))
@@ -630,11 +730,16 @@ class PolyendTrackerDAW(ControlSurface):
         index = tracks.index(current) if current in tracks else 0
         self._send_cc(int(self._feedback["selectedTrackCc"]), clamp(index, 0, 127))
 
-    def _send_all_state(self, force_leds=False):
+    def _send_all_state(self, force_leds=False, texts=False):
         self._send_transport_state()
         self._send_tempo()
+        self._send_signature()
         self._send_ring()
         self._send_selected_track()
+        if texts:
+            self._send_help()
+            if self._names is not None:
+                self._send_names(self._names)
         if force_leds:
             for pad in self._pad_elements:
                 pad.clear_send_cache()

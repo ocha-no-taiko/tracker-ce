@@ -14,7 +14,9 @@
     "tempoLsbCc": 111,
     "ringTrackCc": 112,
     "ringSceneCc": 113,
-    "selectedTrackCc": 114
+    "selectedTrackCc": 114,
+    "signatureNumeratorCc": 115,
+    "signatureDenominatorCc": 116
   },
 
   "noteMode": {
@@ -34,5 +36,28 @@
     "octaveDown": "Down"
   },
 
-  "labels": ["Act", "Solo", "Rec Arm", "Undo", "Redo", "Metro", "", "Exit"]
+  "labels": ["Act", "Solo", "Rec Arm", "Undo", "Redo", "Metro", "", "EXIT"],
+
+  "screen": {
+    "font": "/LiveTracker.ptfont",
+    "title": "Live Tracker",
+    "tagline": "Don't push, Track.",
+    "credit": "©2026 Tusq.",
+    "description": "A system for controlling Ableton Live with Polyend Tracker.",
+    "disclaimer": "* This firmware is unofficial. Therefore, we cannot accept responsibility for any damage that may occur as a result of using it.",
+    "moreDetail": "More Detail: https://github.com/ocha-no-taiko/tracker-ce/tree/daw-control",
+    "infoTitle": "> info",
+    "helpTitle": "> help",
+    "infoLabels": ["File Name:", "Project Name:", "BPM:", "Beat:", "Metro:"],
+    "waiting": "Waiting for Live...",
+    "notSaved": "(not saved)",
+    "metroOn": "On",
+    "metroOff": "Off",
+    "colors": {
+      "background": "#121212",
+      "text": "#FFFFFF",
+      "subText": "#FFFFFF",
+      "line": "#FFFFFF"
+    }
+  }
 }

@@ -1475,6 +1475,7 @@ void cDisplay::controlIdToString(uint8_t id, char* string)
         case controlIdTracker: strcpy(string, "tracker"); break;
         case controlIdWtProgress: strcpy(string, "progress"); break;
         case controlIdNotesKeyboardLabel: strcpy(string, "notesKeyboard"); break;
+        case controlIdDawScreen: strcpy(string, "dawScreen"); break;
         default: strcpy(string, "undefined"); break;
     }
 }

@@ -60,4 +60,6 @@ void UsbMidiImpl::setReceiveActions(MidiReceiveActions* receiveActions)
     usbMIDI.setHandleSongPosition(receiveActions->songPosition);
     usbMIDI.setHandleControlChange(receiveActions->controlChange);
     usbMIDI.setHandleProgramChange(receiveActions->programChange);
+    if (receiveActions->sysEx != nullptr)
+        usbMIDI.setHandleSystemExclusive(receiveActions->sysEx);
 }

@@ -7,11 +7,21 @@
 #include "cr_section_macros.h"
 #include "core/interfaceDefs.h"
 
-DawControlConfig dawControlConfig;
+// External RAM: the screen texts make the settings too big for DTC RAM.
+// Set by dawControlConfigLoad() before the screen uses them.
+__NOINIT(EXTERNAL_RAM) DawControlConfig dawControlConfig;
 
 static constexpr const char* kConfigPath = "/DawControl.json";
 
-__NOINIT(EXTERNAL_RAM) static char s_jsonBuffer[4096];
+__NOINIT(EXTERNAL_RAM) static char s_jsonBuffer[8192];
+__NOINIT(EXTERNAL_RAM) static DawControlConfig s_parsed;
+
+template <size_t N>
+static void copyText(char (&dst)[N], const char* src)
+{
+    strncpy(dst, src, N - 1);
+    dst[N - 1] = '\0';
+}
 
 // Button names accepted in the JSON in place of numeric ids.
 struct ButtonName
@@ -75,6 +85,8 @@ void dawControlConfigSetDefaults(DawControlConfig& cfg)
     cfg.ringTrackCc = 112;
     cfg.ringSceneCc = 113;
     cfg.selectedTrackCc = 114;
+    cfg.signatureNumeratorCc = 115;
+    cfg.signatureDenominatorCc = 116;
 
     cfg.noteRoot = 36;
     cfg.noteRowOffset = 12;
@@ -92,13 +104,35 @@ void dawControlConfigSetDefaults(DawControlConfig& cfg)
     cfg.octaveDownButton = interfaceButtonDown;
 
     static constexpr const char* kLabels[DawControlConfig::kLabelCount] = {
-        "Act", "Solo", "Rec Arm", "Undo", "Redo", "Metro", "", "Exit",
+        "Act", "Solo", "Rec Arm", "Undo", "Redo", "Metro", "", "EXIT",
     };
     for (uint8_t i = 0; i < DawControlConfig::kLabelCount; i++)
-    {
-        strncpy(cfg.labels[i], kLabels[i], DawControlConfig::kLabelLength - 1);
-        cfg.labels[i][DawControlConfig::kLabelLength - 1] = '\0';
-    }
+        copyText(cfg.labels[i], kLabels[i]);
+
+    copyText(cfg.fontPath, "/LiveTracker.ptfont");
+    copyText(cfg.title, "Live Tracker");
+    copyText(cfg.tagline, "Don't push, Track.");
+    copyText(cfg.credit, "\xC2\xA9" "2026 Tusq.");
+    copyText(cfg.description, "A system for controlling Ableton Live with Polyend Tracker.");
+    copyText(cfg.disclaimer,
+             "* This firmware is unofficial. Therefore, we cannot accept responsibility "
+             "for any damage that may occur as a result of using it.");
+    copyText(cfg.moreDetail, "More Detail: https://github.com/ocha-no-taiko/tracker-ce/tree/daw-control");
+    copyText(cfg.infoTitle, "> info");
+    copyText(cfg.helpTitle, "> help");
+    static constexpr const char* kInfoLabels[DawControlConfig::kInfoCount] = {
+        "File Name:", "Project Name:", "BPM:", "Beat:", "Metro:",
+    };
+    for (uint8_t i = 0; i < DawControlConfig::kInfoCount; i++)
+        copyText(cfg.infoLabels[i], kInfoLabels[i]);
+    copyText(cfg.waitingText, "Waiting for Live...");
+    copyText(cfg.unsavedText, "(not saved)");
+    copyText(cfg.metroOn, "On");
+    copyText(cfg.metroOff, "Off");
+    cfg.backgroundColor = 0x121212;
+    cfg.textColor = 0xFFFFFF;
+    cfg.subTextColor = 0xFFFFFF;
+    cfg.lineColor = 0xFFFFFF;
 
     cfg.loadedFromSd = false;
 }
@@ -308,6 +342,51 @@ void readButton(Reader& r, uint8_t& out)
     }
 }
 
+template <size_t N>
+void readText(Reader& r, char (&out)[N])
+{
+    if (r.peek('"'))
+        r.readString(out, N);
+    else
+        r.skipValue();
+}
+
+int hexDigit(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return -1;
+}
+
+// "#RRGGBB" (or "RRGGBB"); anything else keeps the previous color.
+void readColor(Reader& r, uint32_t& out)
+{
+    char text[12];
+    if (!r.peek('"'))
+    {
+        r.skipValue();
+        return;
+    }
+    if (!r.readString(text, sizeof(text)))
+        return;
+    const char* p = (text[0] == '#') ? text + 1 : text;
+    if (strlen(p) != 6)
+        return;
+    uint32_t value = 0;
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        int d = hexDigit(p[i]);
+        if (d < 0)
+            return;
+        value = (value << 4) | (uint32_t)d;
+    }
+    out = value;
+}
+
 template <typename Fn>
 bool readObject(Reader& r, Fn onKey)
 {
@@ -363,7 +442,8 @@ void readScale(Reader& r, DawControlConfig& cfg)
     cfg.scaleLength = count;
 }
 
-void readLabels(Reader& r, DawControlConfig& cfg)
+template <size_t Count, size_t Length>
+void readTextArray(Reader& r, char (&texts)[Count][Length])
 {
     if (!r.match('['))
     {
@@ -373,9 +453,9 @@ void readLabels(Reader& r, DawControlConfig& cfg)
     uint8_t idx = 0;
     while (!r.peek(']') && r.pos < r.len && !r.error)
     {
-        if (idx < DawControlConfig::kLabelCount && r.peek('"'))
+        if (idx < Count && r.peek('"'))
         {
-            r.readString(cfg.labels[idx], DawControlConfig::kLabelLength);
+            r.readString(texts[idx], Length);
         }
         else
         {
@@ -422,6 +502,10 @@ bool dawControlConfigParse(const char* json, size_t len, DawControlConfig& cfg)
                     readMidiValue(r, cfg.ringSceneCc);
                 else if (strcmp(k, "selectedTrackCc") == 0)
                     readMidiValue(r, cfg.selectedTrackCc);
+                else if (strcmp(k, "signatureNumeratorCc") == 0)
+                    readMidiValue(r, cfg.signatureNumeratorCc);
+                else if (strcmp(k, "signatureDenominatorCc") == 0)
+                    readMidiValue(r, cfg.signatureDenominatorCc);
                 else
                     r.skipValue();
             });
@@ -463,7 +547,57 @@ bool dawControlConfigParse(const char* json, size_t len, DawControlConfig& cfg)
             });
         }
         else if (strcmp(key, "labels") == 0)
-            readLabels(r, cfg);
+            readTextArray(r, cfg.labels);
+        else if (strcmp(key, "screen") == 0)
+        {
+            readObject(r, [&](const char* k) {
+                if (strcmp(k, "font") == 0)
+                    readText(r, cfg.fontPath);
+                else if (strcmp(k, "title") == 0)
+                    readText(r, cfg.title);
+                else if (strcmp(k, "tagline") == 0)
+                    readText(r, cfg.tagline);
+                else if (strcmp(k, "credit") == 0)
+                    readText(r, cfg.credit);
+                else if (strcmp(k, "description") == 0)
+                    readText(r, cfg.description);
+                else if (strcmp(k, "disclaimer") == 0)
+                    readText(r, cfg.disclaimer);
+                else if (strcmp(k, "moreDetail") == 0)
+                    readText(r, cfg.moreDetail);
+                else if (strcmp(k, "infoTitle") == 0)
+                    readText(r, cfg.infoTitle);
+                else if (strcmp(k, "helpTitle") == 0)
+                    readText(r, cfg.helpTitle);
+                else if (strcmp(k, "infoLabels") == 0)
+                    readTextArray(r, cfg.infoLabels);
+                else if (strcmp(k, "waiting") == 0)
+                    readText(r, cfg.waitingText);
+                else if (strcmp(k, "notSaved") == 0)
+                    readText(r, cfg.unsavedText);
+                else if (strcmp(k, "metroOn") == 0)
+                    readText(r, cfg.metroOn);
+                else if (strcmp(k, "metroOff") == 0)
+                    readText(r, cfg.metroOff);
+                else if (strcmp(k, "colors") == 0)
+                {
+                    readObject(r, [&](const char* c) {
+                        if (strcmp(c, "background") == 0)
+                            readColor(r, cfg.backgroundColor);
+                        else if (strcmp(c, "text") == 0)
+                            readColor(r, cfg.textColor);
+                        else if (strcmp(c, "subText") == 0)
+                            readColor(r, cfg.subTextColor);
+                        else if (strcmp(c, "line") == 0)
+                            readColor(r, cfg.lineColor);
+                        else
+                            r.skipValue();
+                    });
+                }
+                else
+                    r.skipValue();
+            });
+        }
         else
             r.skipValue();
     });
@@ -483,10 +617,10 @@ void dawControlConfigLoad()
     if (!SdTextFile::readAll(fs, kConfigPath, s_jsonBuffer, sizeof(s_jsonBuffer), &bytesRead))
         return;
 
-    DawControlConfig parsed = dawControlConfig;
-    if (dawControlConfigParse(s_jsonBuffer, bytesRead, parsed))
+    s_parsed = dawControlConfig;
+    if (dawControlConfigParse(s_jsonBuffer, bytesRead, s_parsed))
     {
-        parsed.loadedFromSd = true;
-        dawControlConfig = parsed;
+        s_parsed.loadedFromSd = true;
+        dawControlConfig = s_parsed;
     }
 }

@@ -129,6 +129,10 @@ class UsbMidi : public Midi
         void (*songPosition)(uint16_t);
         void (*controlChange)(uint8_t, uint8_t, uint8_t);
         void (*programChange)(uint8_t, uint8_t);
+        // SysEx data (with F0 / F7), in pieces when a message is longer than
+        // the platform's buffer; complete is true for the last piece.
+        // Optional: platforms without SysEx input ignore it.
+        void (*sysEx)(const uint8_t* data, uint16_t length, bool complete) = nullptr;
     };
 
     virtual void setReceiveActions(MidiReceiveActions* receiveActions) = 0;

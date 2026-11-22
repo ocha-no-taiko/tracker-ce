@@ -11,7 +11,9 @@
     "tempoLsbCc": 111,
     "ringTrackCc": 112,
     "ringSceneCc": 113,
-    "selectedTrackCc": 114
+    "selectedTrackCc": 114,
+    "signatureNumeratorCc": 115,
+    "signatureDenominatorCc": 116
   },
 
   "ledValues": {
@@ -59,5 +61,23 @@
 
   "jog": { "default": "zoom", "shift": "tempo" },
 
-  "ringFollowsSelection": true
+  "ringFollowsSelection": true,
+
+  "help": [
+    ["Params",  "Mixer"],
+    ["Perform", "Session / Arrangement"],
+    ["File",    "Browser"],
+    ["Config",  "Preferences"],
+    ["Master",  "Device View of Main Track"],
+    [],
+    ["Note",    "Clip View"],
+    ["Instr",   "Device View"],
+    [],
+    ["Play",    "Play"],
+    ["Copy",    "Copy"],
+    ["Paste",   "Paste"],
+    ["Insert",  "Re-enabling Automation"],
+    ["Arrows",  "Cursor Movement"],
+    ["Delete",  "Delete Selection"]
+  ]
 }

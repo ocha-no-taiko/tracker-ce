@@ -13,6 +13,8 @@
 // open every USB note/CC goes through here instead of the normal handlers.
 bool dawControlIsActive();
 void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, uint8_t data2);
+// SysEx from USB, possibly in pieces (complete = last piece).
+void dawControlReceiveUsbSysEx(const uint8_t* data, uint16_t length, bool complete);
 
 class cDawControl : public ModuleBase
 {
@@ -39,9 +41,11 @@ class cDawControl : public ModuleBase
 
     // display (gDawControl.cpp)
     void showDefaultScreen();
-    void refreshStates();
     void refreshInfo();
+    void refreshHelp();
     void refreshBottomLabels();
+    void setHelpLine(uint8_t index, const char* text);
+    void resetHelp();
 
     // state from the DAW
     uint8_t states[dawStateCount] = {};
@@ -50,16 +54,25 @@ class cDawControl : public ModuleBase
     uint8_t ringTrack = 0;
     uint8_t ringScene = 0;
     uint8_t selectedTrack = 0;
+    uint8_t signatureNumerator = 4;
+    uint8_t signatureDenominator = 4;
     bool connected = false;
+    bool namesReceived = false;
+    char fileName[48] = {};
+    char projectName[48] = {};
 
     // local state
     bool sessionMode = true;
     int8_t octaveShift = 0;
+    bool screenFont = false; // LiveTracker.ptfont is loaded
 
   private:
     void sendCc(uint8_t cc, uint8_t value);
     void sendNote(uint8_t channel, uint8_t note, uint8_t velocity);
     void handleIncoming(uint8_t status, uint8_t channel, uint8_t data1, uint8_t data2);
+    void handleSysEx(const uint8_t* data, uint16_t length);
+    void loadScreenFont();
+    void restoreUiFont();
 
     void setPadLight(uint8_t pad, uint8_t level, bool blink);
     void applyGridLed(uint8_t pad);
@@ -75,22 +88,13 @@ class cDawControl : public ModuleBase
     uint8_t heldNote[kPadCount] = {};
     bool blinking[kPadCount] = {};
 
-    bool statesDirty = false;
     bool infoDirty = false;
+    bool helpDirty = false;
+    bool fontSwapped = false;
 
   public:
-    // display controls and their text buffers (texts are kept by pointer)
-    hControl label[8];
-    hControl bgLabel;
-    hControl stateLabel[dawStateCount];
-    hControl infoLabel[4];
-
-    char titleText[32];
-    char tempoText[24];
-    char ringText[64];
-    char modeText[48];
-    char statusText[96];
-    char modeButtonText[16];
+    // The screen, one display control per part (see dawScreen.h)
+    hControl screenPart[4] = { -1, -1, -1, -1 };
 };
 
 extern cDawControl dawControl;
