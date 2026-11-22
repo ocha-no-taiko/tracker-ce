@@ -27,7 +27,7 @@
     "Play":        { "press": "play_toggle",                "shift": "continue" },
     "Rec":         { "press": "arrangement_record",         "shift": "session_record" },
 
-    "Params":      { "press": "automation_mode" },
+    "Params":      { "press": "toggle_mixer" },
     "Performance": { "press": "toggle_session_arrangement" },
     "File":        { "press": "toggle_browser" },
     "Config":      { "press": "open_settings" },
@@ -41,10 +41,10 @@
     "Copy":        { "press": "copy",                       "shift": "paste" },
     "Insert":      { "press": "re_enable_automation",       "shift": "home" },
     "Delete":      { "press": "delete" },
-    "Up":          { "press": "cursor_up",                  "shift": "ring_page_up" },
-    "Down":        { "press": "cursor_down",                "shift": "ring_page_down" },
-    "Left":        { "press": "cursor_left",                "shift": "ring_page_left" },
-    "Right":       { "press": "cursor_right",               "shift": "ring_page_right" },
+    "Up":          { "press": "cursor_up",                  "shift": "select_up" },
+    "Down":        { "press": "cursor_down",                "shift": "select_down" },
+    "Left":        { "press": "cursor_left",                "shift": "select_left" },
+    "Right":       { "press": "cursor_right",               "shift": "select_right" },
 
     "Screen1":     { "press": "track_activator" },
     "Screen2":     { "press": "solo_selected_track" },
@@ -57,7 +57,7 @@
     "Song":        { "press": "tap_tempo" }
   },
 
-  "jog": { "default": "scene_select", "shift": "tempo" },
+  "jog": { "default": "zoom", "shift": "tempo" },
 
   "ringFollowsSelection": true
 }

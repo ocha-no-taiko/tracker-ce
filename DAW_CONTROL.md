@@ -14,7 +14,7 @@
 |---|---|
 | Play | 再生／停止（Shift：続きから再生） |
 | Rec | Arrangement 録音（Shift：Session 録音） |
-| Params（Instrument Parameters） | オートメーションモードの切り替え ※1 |
+| Params（Instrument Parameters） | ミキサーの表示／非表示 ※1 |
 | Performance | Session／Arrangement ビューの切り替え（Tab キーと同じ） |
 | File | ブラウザの表示／非表示 |
 | Config | 設定ウィンドウを開く ※1 |
@@ -26,7 +26,7 @@
 | Insert | オートメーションを再有効化（Shift：Home キー） ※2 |
 | Delete | 選択範囲を削除 ※1 |
 | 矢印 | カーソル移動（キーボードの矢印キーと同じ） ※1 |
-| Shift + 矢印 | 赤枠（12 トラック × 4 シーン）を1ページずつ移動 |
+| Shift + 矢印 | 範囲選択（キーボードの Shift + 矢印キーと同じ） ※1 |
 | パッド（Session モード） | 赤枠内のクリップを起動 |
 | パッド（Note モード） | 鍵盤として演奏（MIDI ch1） |
 | 画面下ボタン 1（Act） | 選択中のトラックのオン／オフ（トラックアクティベーター） |
@@ -39,10 +39,10 @@
 | 画面下ボタン 8（Exit）または Shift + Config | DAW Control 画面を閉じる |
 | Pattern | 元に戻す（Shift：やり直し） |
 | Song | タップテンポ |
-| ジョグホイール | シーン選択（Shift でテンポ ±1） |
+| ジョグホイール | 右に回すと拡大、左に回すと縮小（Arrangement の時間軸。Shift でテンポ ±1） |
 | Up／Down（Note モード中） | オクターブ上下（Tracker 側で処理。カーソル移動にはならない） |
 
-- 赤枠は選択中のトラック・シーンについていきます（`mapping.json` の `ringFollowsSelection`）。
+- 赤枠（12 トラック × 4 シーン）は選択中のトラック・シーンについていきます（`mapping.json` の `ringFollowsSelection`）。
 - ※1 Live の API に無い操作なので、Mac のキーボードショートカットとして Live に送ります（下の「キーボード操作について」）。
 - ※2 Live の Home キーは、Arrangement では挿入マーカーを先頭へ、Session では先頭のトラックへ移動します。
 
@@ -50,7 +50,7 @@
 
 ### キーボード操作について（※1）
 
-コピー・ペースト・削除・矢印・設定・オートメーションモードは、Live の API に操作が無いため、同梱の `keysender.js` が Mac のキー入力として Live に送ります。
+コピー・ペースト・削除・矢印・範囲選択・設定・ミキサーは、Live の API に操作が無いため、同梱の `keysender.js` が Mac のキー入力として Live に送ります。
 
 - **macOS だけ**で動きます。
 - 最初に押したとき、macOS が Live に「アクセシビリティ」の許可を求めます。**システム設定 > プライバシーとセキュリティ > アクセシビリティ** で Ableton Live をオンにしてください。オンにするまでキーは届きません。
@@ -108,8 +108,8 @@ DAW Control 画面を開いている間は、Tracker 自身のシーケンサー
 ```
 
 - ボタン名：`Screen1`〜`Screen8`、`Params`、`Performance`、`File`、`Config`、`Master`、`SampleLoad`、`SamplePlay`、`SampleEdit`、`SampleRec`、`Song`、`Note`、`Instr`、`Vol`、`Fx`、`Pattern`、`Play`、`Copy`、`Insert`、`Up`、`Delete`、`Rec`、`Shift`、`Left`、`Down`、`Right`
-- 使える動作：`automation_mode`、`toggle_session_arrangement`、`toggle_browser`、`open_settings`、`toggle_main_devices`、`toggle_clip_view`、`toggle_device_view`、`device_prev`、`device_next`、`copy`、`paste`、`delete`、`home`、`cursor_up`／`down`／`left`／`right`、`re_enable_automation`、`track_activator`、`solo_selected_track`、`play_toggle`、`continue`、`stop`、`arrangement_record`、`session_record`、`overdub`、`metronome`、`tap_tempo`、`tempo_up`、`tempo_down`、`undo`、`redo`、`capture_midi`、`stop_all_clips`、`stop_selected_track`、`arm_selected_track`、`track_prev`、`track_next`、`scene_prev`、`scene_next`、`ring_left`、`ring_right`、`ring_up`、`ring_down`、`ring_page_left`、`ring_page_right`、`ring_page_up`、`ring_page_down`、`scene_launch_1`〜`scene_launch_4`、`key:<ショートカット>`（例：`key:cmd+shift+c`。修飾キーは `cmd`・`shift`・`alt`（`option`）・`ctrl`）
-- ジョグ（`jog`）：`scene_select`、`track_select`、`tempo`
+- 使える動作：`toggle_mixer`、`automation_mode`、`toggle_session_arrangement`、`toggle_browser`、`open_settings`、`toggle_main_devices`、`toggle_clip_view`、`toggle_device_view`、`device_prev`、`device_next`、`copy`、`paste`、`delete`、`home`、`cursor_up`／`down`／`left`／`right`、`select_up`／`down`／`left`／`right`、`re_enable_automation`、`track_activator`、`solo_selected_track`、`play_toggle`、`continue`、`stop`、`arrangement_record`、`session_record`、`overdub`、`metronome`、`tap_tempo`、`tempo_up`、`tempo_down`、`undo`、`redo`、`capture_midi`、`stop_all_clips`、`stop_selected_track`、`arm_selected_track`、`track_prev`、`track_next`、`scene_prev`、`scene_next`、`ring_left`、`ring_right`、`ring_up`、`ring_down`、`ring_page_left`、`ring_page_right`、`ring_page_up`、`ring_page_down`、`scene_launch_1`〜`scene_launch_4`、`key:<ショートカット>`（例：`key:cmd+shift+c`。修飾キーは `cmd`・`shift`・`alt`（`option`）・`ctrl`）
+- ジョグ（`jog`）：`zoom`、`scene_select`、`track_select`、`tempo`
 - LED の明るさ（`ledValues`）：0＝消灯、1〜31＝点灯、33〜63＝点滅（明るさは値−32）
 
 ### Tracker 側：SD カードの `/DawControl.json`

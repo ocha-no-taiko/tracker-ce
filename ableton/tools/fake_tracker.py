@@ -177,15 +177,6 @@ def selftest(t, wait_seconds=10):
     t.send_cc(int(t.m["buttonCcBase"]) + BUTTON_IDS["Shift"], 0)
     wait_for(lambda: tempo_now() == before)
 
-    # Shift + arrows move the session ring by a page (needs 2+ tracks in the Set)
-    t.shift_button("Left")
-    t.shift_button("Up")
-    wait_for(lambda: t.value("ringTrackCc") == 0 and t.value("ringSceneCc") == 0)
-    t.shift_button("Right")
-    check("Shift + Right moves the session ring", wait_for(lambda: (t.value("ringTrackCc") or 0) > 0))
-    t.shift_button("Left")
-    check("Shift + Left moves it back", wait_for(lambda: t.value("ringTrackCc") == 0))
-
     # Arrow keys are sent to Live as computer-keyboard keys. This only works
     # while Live is the frontmost app, in Session View, with the Accessibility
     # permission granted to Live.

@@ -16,7 +16,7 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_CC_TYPE, MIDI_NOTE_TYPE
 from _Framework.SessionComponent import SessionComponent
 
-SCRIPT_VERSION = "1.1.0"
+SCRIPT_VERSION = "1.2.0"
 NUM_TRACKS = 12
 NUM_SCENES = 4
 
@@ -58,7 +58,7 @@ DEFAULT_MAPPING = {
         "armedEmpty": 2,
     },
     "buttons": {},
-    "jog": {"default": "scene_select", "shift": "tempo"},
+    "jog": {"default": "zoom", "shift": "tempo"},
     "ringFollowsSelection": True,
 }
 
@@ -85,6 +85,7 @@ KEY_FLAGS = {
 # Built-in names for keyboard shortcuts (Live 12 manual, "Live Keyboard Shortcuts").
 KEY_ACTIONS = {
     "automation_mode": "a",           # Toggle Automation Mode
+    "toggle_mixer": "cmd+alt+m",      # Hide/Show Mixer
     "open_settings": "cmd+,",         # Open the Settings
     "copy": "cmd+c",
     "paste": "cmd+v",
@@ -94,6 +95,10 @@ KEY_ACTIONS = {
     "cursor_down": "down",
     "cursor_left": "left",
     "cursor_right": "right",
+    "select_up": "shift+up",          # extend the selection (Shift + arrow keys)
+    "select_down": "shift+down",
+    "select_left": "shift+left",
+    "select_right": "shift+right",
 }
 
 
@@ -299,6 +304,8 @@ class PolyendTrackerDAW(ControlSurface):
         if action_name == "tempo":
             song = self.song()
             song.tempo = clamp(song.tempo + delta, 20.0, 999.0)
+        elif action_name == "zoom":
+            self._zoom(delta)
         elif action_name == "scene_select":
             self._select_scene_relative(delta)
         elif action_name == "track_select":
@@ -401,6 +408,16 @@ class PolyendTrackerDAW(ControlSurface):
     def _toggle_session_arrangement(self):
         view = self._app_view()
         view.focus_view("Arranger" if view.is_view_visible("Session") else "Session")
+
+    def _zoom(self, steps):
+        """Horizontal zoom like Live's own ZoomComponent: right = in, left = out."""
+        import Live  # only exists inside Live
+        nav = Live.Application.Application.View.NavDirection
+        direction = nav.right if steps > 0 else nav.left
+        view = self._app_view()
+        name = "Arranger" if view.is_view_visible("Arranger") else view.focused_document_view
+        for _ in range(min(abs(steps), 8)):
+            view.zoom_view(direction, name, False)
 
     def _toggle_browser(self):
         view = self._app_view()

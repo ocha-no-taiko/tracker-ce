@@ -166,6 +166,7 @@ class FakeAppView:
     def __init__(self):
         self.visible = {"Session": True, "Arranger": False, "Browser": True, "Detail": False,
                         "Detail/Clip": False, "Detail/DeviceChain": False}
+        self.zooms = []
 
     def is_view_visible(self, name):
         return self.visible.get(name, False)
@@ -180,6 +181,11 @@ class FakeAppView:
             self.visible["Detail"] = True
             for other in ("Detail/Clip", "Detail/DeviceChain"):
                 self.visible[other] = other == name
+
+    focused_document_view = "Session"
+
+    def zoom_view(self, direction, name, modifier):
+        self.zooms.append((direction, name, modifier))
 
     def hide_view(self, name):
         self.visible[name] = False
@@ -244,6 +250,11 @@ def install_stubs():
         "_Framework.InputControlElement": types.SimpleNamespace(MIDI_CC_TYPE=1, MIDI_NOTE_TYPE=0),
         "_Framework.SessionComponent": types.SimpleNamespace(SessionComponent=Session),
     }
+    nav = types.SimpleNamespace(up="up", down="down", left="left", right="right")
+    live = types.ModuleType("Live")
+    live.Application = types.SimpleNamespace(
+        Application=types.SimpleNamespace(View=types.SimpleNamespace(NavDirection=nav)))
+    mods["Live"] = live
     for name, mod in mods.items():
         sys.modules[name] = mod
 
@@ -329,8 +340,9 @@ def main():
         return keys[-1] if keys else None
 
     # keyboard shortcuts
+    ALT = 0x80000
     press("Params")
-    check("Params sends A (Automation Mode)", last_key() == (0, 0))
+    check("Params sends Cmd+Option+M (Hide/Show Mixer)", last_key() == (46, CMD | ALT))
     press("Config")
     check("Config sends Cmd+, (Settings)", last_key() == (43, CMD))
     press("Copy")
@@ -349,11 +361,13 @@ def main():
     s._run_action("key:cmd+shift+c")
     check("key: actions from mapping.json are sent", last_key() == (8, CMD | SHIFT))
 
-    # Shift + arrows still move the session ring by a page
-    press("Right", shift=True)
-    check("Shift+Right moves the ring one page", s._session.track_offset() == 12)
-    press("Left", shift=True)
-    check("Shift+Left moves it back", s._session.track_offset() == 0)
+    # Shift + arrows extend the selection
+    for name, code in (("Up", 126), ("Down", 125), ("Left", 123), ("Right", 124)):
+        press(name, shift=True)
+        check("Shift+%s sends Shift+%s arrow" % (name, name.lower()), last_key() == (code, SHIFT))
+    s._run_action("ring_page_right")
+    check("ring page actions still work from mapping.json", s._session.track_offset() == 12)
+    s._run_action("ring_page_left")
 
     # views
     press("Performance")
@@ -436,8 +450,15 @@ def main():
     fire_listeners("selected_scene")
     check("ring follows back to the start", s._session.track_offset() == 0 and s._session.scene_offset() == 0)
 
+    view.focus_view("Arranger")
     s._jog.receive(65)
-    check("jog selects next scene", SONG.view.selected_scene is SONG.scenes[1])
+    check("jog right zooms in (NavDirection.right) in the Arrangement",
+          view.zooms[-1] == ("right", "Arranger", False))
+    s._jog.receive(61)
+    check("jog left zooms out 3 steps", view.zooms[-3:] == [("left", "Arranger", False)] * 3)
+    view.focus_view("Session")
+    s._jog.receive(65)
+    check("in Session View it zooms the focused document view", view.zooms[-1][1] == "Session")
     s._buttons[ptd.BUTTON_IDS["Shift"]].receive(127)
     s._jog.receive(66)
     s._buttons[ptd.BUTTON_IDS["Shift"]].receive(0)
