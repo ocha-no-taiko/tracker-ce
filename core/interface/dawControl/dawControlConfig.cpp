@@ -92,7 +92,7 @@ void dawControlConfigSetDefaults(DawControlConfig& cfg)
     cfg.octaveDownButton = interfaceButtonDown;
 
     static constexpr const char* kLabels[DawControlConfig::kLabelCount] = {
-        "Scene 1", "Scene 2", "Scene 3", "Scene 4", "Stop All", "Metro", "", "Exit",
+        "Act", "Solo", "Rec Arm", "Undo", "Redo", "Metro", "", "Exit",
     };
     for (uint8_t i = 0; i < DawControlConfig::kLabelCount; i++)
     {

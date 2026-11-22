@@ -22,7 +22,7 @@ int main(){
   CHECK(e.exitButton==interfaceButtonRec); CHECK(e.modeButton==DawControlConfig::kNoButton);
   CHECK(e.octaveUpButton==31); CHECK(e.octaveDownButton==interfaceButtonDown);
   CHECK(strcmp(e.labels[0],"A")==0); CHECK(strlen(e.labels[1])==15); CHECK(e.labels[2][0]==0);
-  CHECK(strcmp(e.labels[4],"Stop All")==0);
+  CHECK(strcmp(e.labels[4],"Redo")==0);
   const char* bad=R"({"controlChannel": 3, "labels": ["unterminated)";
   DawControlConfig b; dawControlConfigSetDefaults(b);
   CHECK(!dawControlConfigParse(bad,strlen(bad),b));

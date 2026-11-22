@@ -12,35 +12,57 @@
 
 | Tracker の操作 | Live の動作 |
 |---|---|
-| Play | 再生／停止 |
-| Shift + Play | 続きから再生 |
-| Rec | Arrangement 録音 |
-| Shift + Rec | Session 録音 |
-| 矢印 | 赤枠（12 トラック × 4 シーン）を1つずつ移動 |
-| Shift + 矢印 | 赤枠を1ページずつ移動 |
+| Play | 再生／停止（Shift：続きから再生） |
+| Rec | Arrangement 録音（Shift：Session 録音） |
+| Params（Instrument Parameters） | オートメーションモードの切り替え ※1 |
+| Performance | Session／Arrangement ビューの切り替え（Tab キーと同じ） |
+| File | ブラウザの表示／非表示 |
+| Config | 設定ウィンドウを開く ※1 |
+| Master | Main トラックのデバイスビューを開く／閉じる（閉じると元のトラックに戻る） |
+| Note | 選択中のクリップのクリップビューを開く／閉じる |
+| Instr | 選択中のトラックのデバイスビューを開く／閉じる |
+| Vol（FX1）／Fx（FX2） | 選択中のトラックのデバイスを左／右に選ぶ |
+| Copy | コピー（Shift：ペースト） ※1 |
+| Insert | オートメーションを再有効化（Shift：Home キー） ※2 |
+| Delete | 選択範囲を削除 ※1 |
+| 矢印 | カーソル移動（キーボードの矢印キーと同じ） ※1 |
+| Shift + 矢印 | 赤枠（12 トラック × 4 シーン）を1ページずつ移動 |
 | パッド（Session モード） | 赤枠内のクリップを起動 |
 | パッド（Note モード） | 鍵盤として演奏（MIDI ch1） |
-| 画面下ボタン 1〜4 | シーン 1〜4 を起動 |
-| 画面下ボタン 5 | 全クリップ停止 |
-| 画面下ボタン 6 | メトロノーム（Shift でタップテンポ） |
+| 画面下ボタン 1（Act） | 選択中のトラックのオン／オフ（トラックアクティベーター） |
+| 画面下ボタン 2（Solo） | 選択中のトラックのソロ |
+| 画面下ボタン 3（Rec Arm） | 選択中のトラックの録音アーム |
+| 画面下ボタン 4（Undo） | 元に戻す（Shift：やり直し） |
+| 画面下ボタン 5（Redo） | やり直し |
+| 画面下ボタン 6（Metro） | メトロノーム（Shift：タップテンポ） |
 | 画面下ボタン 7 | Session／Note モード切り替え（Tracker 側で処理） |
-| 画面下ボタン 8 または Shift + Config | DAW Control 画面を閉じる |
-| Insert | オーバーダブ |
-| Delete | 選択トラックのクリップを停止 |
-| Copy | Capture MIDI |
-| Note／Instr | 前／次のトラックを選択 |
-| Params | 選択トラックのアーム |
-| Pattern | 元に戻す（Shift でやり直し） |
+| 画面下ボタン 8（Exit）または Shift + Config | DAW Control 画面を閉じる |
+| Pattern | 元に戻す（Shift：やり直し） |
 | Song | タップテンポ |
 | ジョグホイール | シーン選択（Shift でテンポ ±1） |
-| Up／Down（Note モード中） | オクターブ上下（Tracker 側で処理） |
+| Up／Down（Note モード中） | オクターブ上下（Tracker 側で処理。カーソル移動にはならない） |
+
+- 赤枠は選択中のトラック・シーンについていきます（`mapping.json` の `ringFollowsSelection`）。
+- ※1 Live の API に無い操作なので、Mac のキーボードショートカットとして Live に送ります（下の「キーボード操作について」）。
+- ※2 Live の Home キーは、Arrangement では挿入マーカーを先頭へ、Session では先頭のトラックへ移動します。
 
 パッドの LED はクリップの状態を明るさと点滅で表します（空＝消灯、停止中＝暗め、再生中＝最大、再生待ち・録音中＝点滅）。Tracker のパッドは単色なので、クリップの色は出ません。
+
+### キーボード操作について（※1）
+
+コピー・ペースト・削除・矢印・設定・オートメーションモードは、Live の API に操作が無いため、同梱の `keysender.js` が Mac のキー入力として Live に送ります。
+
+- **macOS だけ**で動きます。
+- 最初に押したとき、macOS が Live に「アクセシビリティ」の許可を求めます。**システム設定 > プライバシーとセキュリティ > アクセシビリティ** で Ableton Live をオンにしてください。オンにするまでキーは届きません。
+- キーは **Live が最前面のときだけ**送ります。ほかのアプリを使っているときに押しても、そのアプリには何も入りません。
+- 送った結果は `Remote Scripts/PolyendTrackerDAW/keysender.log` に残ります（許可の有無もここに出ます）。
+- `mapping.json` では、`"key:cmd+shift+c"` のように書くと好きなショートカットを割り当てられます。
 
 ## 1. ファームを書き込む
 
 1. ビルド済みの `PolyendTracker_DAW_x.y.z.ptf` を、SD カードの `/Firmware/` に入れます（ビルド方法は下の「ビルド」を参照）。
 2. 必要なら `sd-card/DawControl.json` を SD カードの一番上（`/DawControl.json`）にコピーします。無くても既定値で動きます。
+   - 画面下のラベルはこの JSON が優先されます。古い JSON が SD カードに残っていると、ファームを新しくしてもラベルは古いままです。ラベルだけ変えたいときは、JSON を差し替えるだけで済みます（ファームの書き直しは不要）。
 3. Tracker で **Config > Firmware > Firmware update** を実行します。
 4. 起動しなくなった場合は、`/Firmware/` に公式の `.ptf` だけを入れて電源を入れ、本体底面のリセット穴を押すと戻せます（公式 README の「Emergency Recovery」）。
 
@@ -50,7 +72,13 @@
 sh ableton/install.sh
 ```
 
-`~/Music/Ableton/User Library/Remote Scripts/PolyendTrackerDAW/` にコピーされます。すでに `mapping.json` を編集していた場合は、その内容を残します。
+`~/Music/Ableton/User Library/Remote Scripts/PolyendTrackerDAW/` にコピーされます。すでにある `mapping.json` が新しい既定値と違う場合は、その内容を残し、新しい既定値を `mapping.default.json` として隣に置きます。新しい既定値に置き換えるときは次のとおりです。
+
+```sh
+RESET_MAPPING=1 sh ableton/install.sh
+```
+
+スクリプト（`.py`）を入れ替えたときは、Live の再起動が必要です。
 
 1. Live を再起動します。
 2. **設定 > Tempo & MIDI** の「コントロールサーフェス」で、空いている行に次を設定します。
@@ -80,7 +108,7 @@ DAW Control 画面を開いている間は、Tracker 自身のシーケンサー
 ```
 
 - ボタン名：`Screen1`〜`Screen8`、`Params`、`Performance`、`File`、`Config`、`Master`、`SampleLoad`、`SamplePlay`、`SampleEdit`、`SampleRec`、`Song`、`Note`、`Instr`、`Vol`、`Fx`、`Pattern`、`Play`、`Copy`、`Insert`、`Up`、`Delete`、`Rec`、`Shift`、`Left`、`Down`、`Right`
-- 使える動作：`play_toggle`、`continue`、`stop`、`arrangement_record`、`session_record`、`overdub`、`metronome`、`tap_tempo`、`tempo_up`、`tempo_down`、`undo`、`redo`、`capture_midi`、`stop_all_clips`、`stop_selected_track`、`arm_selected_track`、`track_prev`、`track_next`、`scene_prev`、`scene_next`、`ring_left`、`ring_right`、`ring_up`、`ring_down`、`ring_page_left`、`ring_page_right`、`ring_page_up`、`ring_page_down`、`scene_launch_1`〜`scene_launch_4`
+- 使える動作：`automation_mode`、`toggle_session_arrangement`、`toggle_browser`、`open_settings`、`toggle_main_devices`、`toggle_clip_view`、`toggle_device_view`、`device_prev`、`device_next`、`copy`、`paste`、`delete`、`home`、`cursor_up`／`down`／`left`／`right`、`re_enable_automation`、`track_activator`、`solo_selected_track`、`play_toggle`、`continue`、`stop`、`arrangement_record`、`session_record`、`overdub`、`metronome`、`tap_tempo`、`tempo_up`、`tempo_down`、`undo`、`redo`、`capture_midi`、`stop_all_clips`、`stop_selected_track`、`arm_selected_track`、`track_prev`、`track_next`、`scene_prev`、`scene_next`、`ring_left`、`ring_right`、`ring_up`、`ring_down`、`ring_page_left`、`ring_page_right`、`ring_page_up`、`ring_page_down`、`scene_launch_1`〜`scene_launch_4`、`key:<ショートカット>`（例：`key:cmd+shift+c`。修飾キーは `cmd`・`shift`・`alt`（`option`）・`ctrl`）
 - ジョグ（`jog`）：`scene_select`、`track_select`、`tempo`
 - LED の明るさ（`ledValues`）：0＝消灯、1〜31＝点灯、33〜63＝点滅（明るさは値−32）
 
@@ -112,10 +140,10 @@ USB MIDI のポートは1つなので、チャンネルで役割を分けてい�
 GNU Arm Embedded Toolchain 10.3-2021.10 が必要です（公式 README の手順と同じ）。
 
 ```sh
-make original ORIGINAL_POSTFIX=DAW_1.0.0
+make original ORIGINAL_POSTFIX=DAW_1.1.0
 ```
 
-`build/PolyendTracker_DAW_1.0.0.ptf` ができます。
+`build/PolyendTracker_DAW_1.1.0.ptf` ができます。
 
 ## テスト
 
@@ -123,6 +151,7 @@ make original ORIGINAL_POSTFIX=DAW_1.0.0
 sh tests/dawControl/run.sh                         # ファームの JSON 読み込み（Mac/Linux で実行）
 python3 ableton/tools/test_script_offline.py       # Remote Script の動作（Live 不要）
 python3 ableton/tools/fake_tracker.py selftest 300 # Live と実際に通信（python-rtmidi が必要）
+python3 ableton/tools/fake_tracker.py --port "Tracker Test" selftest 300  # 実機をつないだまま試すとき
 ```
 
 `fake_tracker.py` は「Tracker」という名前の仮想 MIDI ポートを作り、Tracker のふりをします。実行中に Live の Control Surface で入出力を `Tracker` にすると、自動テストが進みます。

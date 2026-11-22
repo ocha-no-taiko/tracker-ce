@@ -9,8 +9,10 @@ PolyendTrackerDAW as a Control Surface with Input and Output set to "Tracker".
     python3 fake_tracker.py selftest      # automated checks, prints PASS / FAIL
     python3 fake_tracker.py monitor       # just print what Live sends back
     python3 fake_tracker.py press Play    # press + release one button
+    python3 fake_tracker.py --port "Tracker Test" selftest   # other port name
 
 The message numbers are read from ../PolyendTrackerDAW/mapping.json.
+Use --port when a real Tracker is connected, so the two ports do not share a name.
 """
 
 import json
@@ -37,14 +39,14 @@ STATE_NAMES = ["play", "arrangement_record", "session_record", "overdub", "metro
 
 
 class FakeTracker:
-    def __init__(self, mapping):
+    def __init__(self, mapping, port_name="Tracker"):
         self.m = mapping
         self.ch = int(mapping["channel"]) - 1
         self.fb = mapping["feedback"]
         self.out = rtmidi.MidiOut()
-        self.out.open_virtual_port("Tracker")
+        self.out.open_virtual_port(port_name)
         self.inp = rtmidi.MidiIn()
-        self.inp.open_virtual_port("Tracker")
+        self.inp.open_virtual_port(port_name)
         self.inp.set_callback(self._on_midi)
         self.lock = threading.Lock()
         self.cc = {}
@@ -136,7 +138,7 @@ def selftest(t, wait_seconds=10):
         results.append(ok)
         print("%s  %s" % ("PASS" if ok else "FAIL", name))
 
-    print("Waiting for Live... (Control Surface: PolyendTrackerDAW, In/Out: Tracker)")
+    print("Waiting for Live... (Control Surface: PolyendTrackerDAW, In/Out: the fake port)")
     end = time.time() + wait_seconds
     while t.state("play") is None and time.time() < end:
         t.hello(True)  # repeat until the surface is set up in Live
@@ -175,24 +177,25 @@ def selftest(t, wait_seconds=10):
     t.send_cc(int(t.m["buttonCcBase"]) + BUTTON_IDS["Shift"], 0)
     wait_for(lambda: tempo_now() == before)
 
-    # ring navigation (needs at least 2 tracks / 2 scenes in the Set)
-    t.button("Left")
-    t.button("Up")
+    # Shift + arrows move the session ring by a page (needs 2+ tracks in the Set)
+    t.shift_button("Left")
+    t.shift_button("Up")
     wait_for(lambda: t.value("ringTrackCc") == 0 and t.value("ringSceneCc") == 0)
-    t.button("Right")
-    check("Right moves the session ring one track", wait_for(lambda: t.value("ringTrackCc") == 1))
-    t.button("Left")
-    check("Left moves it back", wait_for(lambda: t.value("ringTrackCc") == 0))
-    t.button("Down")
-    check("Down moves the ring one scene", wait_for(lambda: t.value("ringSceneCc") == 1))
-    t.button("Up")
-    wait_for(lambda: t.value("ringSceneCc") == 0)
+    t.shift_button("Right")
+    check("Shift + Right moves the session ring", wait_for(lambda: (t.value("ringTrackCc") or 0) > 0))
+    t.shift_button("Left")
+    check("Shift + Left moves it back", wait_for(lambda: t.value("ringTrackCc") == 0))
 
-    sel = t.value("selectedTrackCc")
-    t.button("Instr")
-    check("Instr selects the next track", wait_for(lambda: t.value("selectedTrackCc") == (sel or 0) + 1))
-    t.button("Note")
-    wait_for(lambda: t.value("selectedTrackCc") == sel)
+    # Arrow keys are sent to Live as computer-keyboard keys. This only works
+    # while Live is the frontmost app, in Session View, with the Accessibility
+    # permission granted to Live.
+    sel = t.value("selectedTrackCc") or 0
+    t.button("Right")
+    moved = wait_for(lambda: t.value("selectedTrackCc") == sel + 1, timeout=3)
+    check("Right arrow moves the selection (needs Accessibility + Live in front)", moved)
+    if moved:
+        t.button("Left")
+        wait_for(lambda: t.value("selectedTrackCc") == sel, timeout=3)
 
     with t.lock:
         t.leds.clear()
@@ -207,7 +210,13 @@ def selftest(t, wait_seconds=10):
 def main():
     with open(MAPPING_PATH, "r", encoding="utf-8") as f:
         mapping = json.load(f)
-    t = FakeTracker(mapping)
+    args = sys.argv[1:]
+    port_name = "Tracker"
+    if len(args) >= 2 and args[0] == "--port":
+        port_name = args[1]
+        args = args[2:]
+    sys.argv = [sys.argv[0]] + args
+    t = FakeTracker(mapping, port_name)
     cmd = sys.argv[1] if len(sys.argv) > 1 else "monitor"
     try:
         if cmd == "selftest":

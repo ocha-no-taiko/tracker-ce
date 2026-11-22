@@ -24,27 +24,40 @@
   },
 
   "buttons": {
-    "Play":    { "press": "play_toggle",        "shift": "continue" },
-    "Rec":     { "press": "arrangement_record", "shift": "session_record" },
-    "Up":      { "press": "ring_up",            "shift": "ring_page_up" },
-    "Down":    { "press": "ring_down",          "shift": "ring_page_down" },
-    "Left":    { "press": "ring_left",          "shift": "ring_page_left" },
-    "Right":   { "press": "ring_right",         "shift": "ring_page_right" },
-    "Screen1": { "press": "scene_launch_1" },
-    "Screen2": { "press": "scene_launch_2" },
-    "Screen3": { "press": "scene_launch_3" },
-    "Screen4": { "press": "scene_launch_4" },
-    "Screen5": { "press": "stop_all_clips" },
-    "Screen6": { "press": "metronome",          "shift": "tap_tempo" },
-    "Insert":  { "press": "overdub" },
-    "Delete":  { "press": "stop_selected_track" },
-    "Copy":    { "press": "capture_midi" },
-    "Note":    { "press": "track_prev" },
-    "Instr":   { "press": "track_next" },
-    "Params":  { "press": "arm_selected_track" },
-    "Pattern": { "press": "undo",               "shift": "redo" },
-    "Song":    { "press": "tap_tempo" }
+    "Play":        { "press": "play_toggle",                "shift": "continue" },
+    "Rec":         { "press": "arrangement_record",         "shift": "session_record" },
+
+    "Params":      { "press": "automation_mode" },
+    "Performance": { "press": "toggle_session_arrangement" },
+    "File":        { "press": "toggle_browser" },
+    "Config":      { "press": "open_settings" },
+    "Master":      { "press": "toggle_main_devices" },
+
+    "Note":        { "press": "toggle_clip_view" },
+    "Instr":       { "press": "toggle_device_view" },
+    "Vol":         { "press": "device_prev" },
+    "Fx":          { "press": "device_next" },
+
+    "Copy":        { "press": "copy",                       "shift": "paste" },
+    "Insert":      { "press": "re_enable_automation",       "shift": "home" },
+    "Delete":      { "press": "delete" },
+    "Up":          { "press": "cursor_up",                  "shift": "ring_page_up" },
+    "Down":        { "press": "cursor_down",                "shift": "ring_page_down" },
+    "Left":        { "press": "cursor_left",                "shift": "ring_page_left" },
+    "Right":       { "press": "cursor_right",               "shift": "ring_page_right" },
+
+    "Screen1":     { "press": "track_activator" },
+    "Screen2":     { "press": "solo_selected_track" },
+    "Screen3":     { "press": "arm_selected_track" },
+    "Screen4":     { "press": "undo",                       "shift": "redo" },
+    "Screen5":     { "press": "redo" },
+    "Screen6":     { "press": "metronome",                  "shift": "tap_tempo" },
+
+    "Pattern":     { "press": "undo",                       "shift": "redo" },
+    "Song":        { "press": "tap_tempo" }
   },
 
-  "jog": { "default": "scene_select", "shift": "tempo" }
+  "jog": { "default": "scene_select", "shift": "tempo" },
+
+  "ringFollowsSelection": true
 }

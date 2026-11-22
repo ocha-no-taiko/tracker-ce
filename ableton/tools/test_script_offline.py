@@ -102,14 +102,34 @@ class FakeSong:
         self.tracks = [Obj() for _ in range(20)]
         for i, t in enumerate(self.tracks):
             t.arm, t.can_be_armed, t.idx = False, True, i
+            t.mute = t.solo = False
             t.stop_all_clips = (lambda i=i: self.calls.append("stop_track_%d" % i))
+            t.devices = [Obj() for _ in range(3)] if i < 2 else []
+            t.view = Obj()
+            t.view.selected_device = t.devices[0] if t.devices else None
         self.visible_tracks = self.tracks
+        self.return_tracks = []
+        self.master_track = Obj()
+        self.master_track.idx = "main"
+        self.master_track.devices = [Obj()]
+        self.master_track.view = Obj()
+        self.master_track.view.selected_device = None
+        self.re_enable_automation_enabled = True
         self.scenes = [Obj() for _ in range(8)]
         for i, s in enumerate(self.scenes):
             s.fire = (lambda i=i: self.calls.append("fire_scene_%d" % i))
         self.view = Obj()
         self.view.selected_track = self.tracks[0]
         self.view.selected_scene = self.scenes[0]
+        self.view.highlighted_clip_slot = Obj()
+        self.view.highlighted_clip_slot.has_clip = True
+        self.view.highlighted_clip_slot.clip = "clip-A"
+        self.view.detail_clip = None
+        song = self
+
+        def select_device(device):
+            song.view.selected_track.view.selected_device = device
+        self.view.select_device = select_device
 
     def start_playing(self):
         self.is_playing = True
@@ -136,6 +156,40 @@ class FakeSong:
     def stop_all_clips(self):
         self.calls.append("stop_all")
 
+    def re_enable_automation(self):
+        self.calls.append("re_enable")
+
+
+class FakeAppView:
+    """Application.View: only the calls the script uses."""
+
+    def __init__(self):
+        self.visible = {"Session": True, "Arranger": False, "Browser": True, "Detail": False,
+                        "Detail/Clip": False, "Detail/DeviceChain": False}
+
+    def is_view_visible(self, name):
+        return self.visible.get(name, False)
+
+    def focus_view(self, name):
+        self.visible["Session"] = name == "Session"
+        self.visible["Arranger"] = name == "Arranger"
+
+    def show_view(self, name):
+        self.visible[name] = True
+        if name.startswith("Detail/"):
+            self.visible["Detail"] = True
+            for other in ("Detail/Clip", "Detail/DeviceChain"):
+                self.visible[other] = other == name
+
+    def hide_view(self, name):
+        self.visible[name] = False
+        if name == "Detail":
+            self.visible["Detail/Clip"] = self.visible["Detail/DeviceChain"] = False
+
+
+APP = Obj()
+APP.view = FakeAppView()
+
 
 SONG = FakeSong()
 
@@ -157,6 +211,9 @@ class ControlSurface:
 
     def song(self):
         return SONG
+
+    def application(self):
+        return APP
 
     def log_message(self, *m):
         pass
@@ -255,31 +312,129 @@ def main():
     press("Screen6", shift=True)
     check("Shift+Screen6 taps tempo", SONG.calls[-1] == "tap")
 
-    press("Right")
-    check("Right moves ring one track", s._session.track_offset() == 1)
-    check("ring position sent (CC112=1)", last_cc(112) == 1)
-    press("Right", shift=True)
-    check("Shift+Right moves one page", s._session.track_offset() == 13)
-    press("Right", shift=True)
-    check("ring clamps at the last track", s._session.track_offset() == 19)
-    press("Left", shift=True)
-    press("Left", shift=True)
-    check("ring clamps at 0", s._session.track_offset() == 0)
-    press("Down")
-    press("Screen2")
-    check("Screen2 fires scene offset+1", SONG.calls[-1] == "fire_scene_2")
+    keys = []
 
-    press("Instr")
-    check("Instr selects next track", SONG.view.selected_track.idx == 1)
-    fire_listeners("selected_track")
-    check("selected track sent (CC114=1)", last_cc(114) == 1)
+    class FakeKeys:
+        def send(self, code, flags):
+            keys.append((code, flags))
+
+        def close(self):
+            pass
+
+    s._keys = FakeKeys()
+    CMD, SHIFT = 0x100000, 0x20000
+    view = APP.view
+
+    def last_key():
+        return keys[-1] if keys else None
+
+    # keyboard shortcuts
     press("Params")
-    check("Params arms selected track", SONG.tracks[1].arm)
+    check("Params sends A (Automation Mode)", last_key() == (0, 0))
+    press("Config")
+    check("Config sends Cmd+, (Settings)", last_key() == (43, CMD))
+    press("Copy")
+    check("Copy sends Cmd+C", last_key() == (8, CMD))
+    press("Copy", shift=True)
+    check("Shift+Copy sends Cmd+V", last_key() == (9, CMD))
     press("Delete")
-    check("Delete stops the selected track", SONG.calls[-1] == "stop_track_1")
-    press("Pattern")
-    press("Pattern", shift=True)
-    check("Pattern undo / Shift redo", SONG.calls[-2:] == ["undo", "redo"])
+    check("Delete sends Backspace", last_key() == (51, 0))
+    press("Insert", shift=True)
+    check("Shift+Insert sends Home", last_key() == (115, 0))
+    for name, code in (("Up", 126), ("Down", 125), ("Left", 123), ("Right", 124)):
+        press(name)
+        check("%s sends the %s arrow key" % (name, name.lower()), last_key() == (code, 0))
+    check("parse_key handles modifiers", ptd.parse_key("cmd+shift+c") == (8, CMD | SHIFT))
+    check("parse_key rejects unknown keys", ptd.parse_key("cmd+nope") is None)
+    s._run_action("key:cmd+shift+c")
+    check("key: actions from mapping.json are sent", last_key() == (8, CMD | SHIFT))
+
+    # Shift + arrows still move the session ring by a page
+    press("Right", shift=True)
+    check("Shift+Right moves the ring one page", s._session.track_offset() == 12)
+    press("Left", shift=True)
+    check("Shift+Left moves it back", s._session.track_offset() == 0)
+
+    # views
+    press("Performance")
+    check("Perform switches to Arrangement", view.is_view_visible("Arranger"))
+    press("Performance")
+    check("Perform switches back to Session", view.is_view_visible("Session"))
+    press("File")
+    check("File hides the browser", not view.is_view_visible("Browser"))
+    press("File")
+    check("File shows the browser again", view.is_view_visible("Browser"))
+
+    press("Note")
+    check("Note opens Clip View with the highlighted clip",
+          view.is_view_visible("Detail/Clip") and SONG.view.detail_clip == "clip-A")
+    press("Note")
+    check("Note again closes the Detail View", not view.is_view_visible("Detail"))
+    press("Instr")
+    check("Instr opens Device View", view.is_view_visible("Detail/DeviceChain"))
+    press("Instr")
+    check("Instr again closes it", not view.is_view_visible("Detail"))
+
+    SONG.view.selected_track = SONG.tracks[1]
+    press("Master")
+    check("Master selects the Main track and opens its devices",
+          SONG.view.selected_track is SONG.master_track and view.is_view_visible("Detail/DeviceChain"))
+    press("Master")
+    check("Master again closes it and returns to the previous track",
+          SONG.view.selected_track is SONG.tracks[1] and not view.is_view_visible("Detail"))
+
+    track = SONG.tracks[1]
+    press("Fx")
+    check("FX2 selects the next device", track.view.selected_device is track.devices[1])
+    press("Fx")
+    press("Fx")
+    check("FX2 stops at the last device", track.view.selected_device is track.devices[2])
+    press("Vol")
+    check("FX1 selects the previous device", track.view.selected_device is track.devices[1])
+    SONG.view.selected_track = SONG.tracks[5]
+    press("Vol")  # no devices: must not raise
+    check("FX1 on a track without devices is ignored", True)
+    SONG.view.selected_track = SONG.tracks[1]
+
+    press("Insert")
+    check("Insert re-enables automation", SONG.calls[-1] == "re_enable")
+
+    # bottom buttons
+    press("Screen1")
+    check("Screen1 toggles the Track Activator", track.mute)
+    press("Screen1")
+    check("Screen1 again turns it back on", not track.mute)
+    press("Screen2")
+    check("Screen2 toggles solo", track.solo)
+    press("Screen3")
+    check("Screen3 arms the selected track", track.arm)
+    press("Screen4")
+    check("Screen4 undoes", SONG.calls[-1] == "undo")
+    press("Screen4", shift=True)
+    check("Shift+Screen4 redoes", SONG.calls[-1] == "redo")
+    press("Screen5")
+    check("Screen5 redoes", SONG.calls[-2:] == ["redo", "redo"])
+    SONG.view.selected_track = SONG.master_track
+    press("Screen1")
+    press("Screen2")
+    check("Act / Solo do nothing on the Main track", not hasattr(SONG.master_track, "mute"))
+
+    # the session ring follows the selection
+    SONG.view.selected_track = SONG.tracks[14]
+    fire_listeners("selected_track")
+    check("selected track sent (CC114=14)", last_cc(114) == 14)
+    check("ring follows a selection to the right", s._session.track_offset() == 3)
+    SONG.view.selected_scene = SONG.scenes[6]
+    fire_listeners("selected_scene")
+    check("ring follows a selection downwards", s._session.scene_offset() == 3)
+    SONG.view.selected_track = SONG.tracks[3]
+    fire_listeners("selected_track")
+    check("ring does not move while the selection is inside", s._session.track_offset() == 3)
+    SONG.view.selected_track = SONG.tracks[0]
+    SONG.view.selected_scene = SONG.scenes[0]
+    fire_listeners("selected_track")
+    fire_listeners("selected_scene")
+    check("ring follows back to the start", s._session.track_offset() == 0 and s._session.scene_offset() == 0)
 
     s._jog.receive(65)
     check("jog selects next scene", SONG.view.selected_scene is SONG.scenes[1])
@@ -297,7 +452,7 @@ def main():
     s._hello.receive(0)
     check("hello off clears Shift", s._shift is False)
 
-    press("Fx")  # not mapped: must not raise
+    press("SampleLoad")  # not mapped: must not raise
     check("unmapped button is ignored", True)
 
     print()

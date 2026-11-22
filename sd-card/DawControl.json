@@ -34,5 +34,5 @@
     "octaveDown": "Down"
   },
 
-  "labels": ["Scene 1", "Scene 2", "Scene 3", "Scene 4", "Stop All", "Metro", "", "Exit"]
+  "labels": ["Act", "Solo", "Rec Arm", "Undo", "Redo", "Metro", "", "Exit"]
 }
