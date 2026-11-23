@@ -141,6 +141,7 @@ int main(int argc, char** argv)
         { "help", qtrlTabHelp, false },    { "quit", qtrlTabQuit, false },
     };
     bool ok = true;
+    FILE* sink = fopen("/dev/null", "w");
     for (const Shot& shot : shots)
     {
         fillSample(cfg, shot.alert);
@@ -158,6 +159,23 @@ int main(int argc, char** argv)
             g_words = 0;
             screen.update();
             total += g_words;
+
+            // Config calls setControlValue() on its old frame handle after its
+            // menu has opened this screen; the part must keep drawing itself.
+            FILE* list = g_list;
+            g_list = sink;
+            const unsigned words = g_words;
+            cQtrlScreen poked(&prop);
+            poked.setValue(qtrlScreenHeader);
+            poked.setData(nullptr);
+            g_words = 0;
+            poked.update();
+            g_list = list;
+            if (g_words != words)
+            {
+                printf("%s: part %d changed after setValue/setData\n", shot.name, part);
+                ok = false;
+            }
         }
         fclose(g_list);
         printf("%-13s %4u words (a frame allows 2043)\n", shot.name, total);

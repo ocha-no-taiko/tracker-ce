@@ -107,9 +107,13 @@ class cQtrlScreen : public cDisplayControl
 
     virtual void setStyle(uint32_t style) { this->style = style; }
     virtual void setText(const char* text) { this->text = text; }
-    virtual void setValue(int value) { this->value = value; }
+    // The part and the data are fixed when the control is made. A module that
+    // was just left can still call setControlValue() / setControlData() with
+    // its old handles (Config does after its menu opens this screen), and the
+    // handle may by then belong to one of these parts.
+    virtual void setValue(int) {}
     virtual void setColors(const uint32_t* colors) { this->colors = colors; }
-    virtual void setData(void* data) { this->data = (const QtrlScreenData*)data; }
+    virtual void setData(void*) {}
 
   private:
     const QtrlScreenData* data = nullptr;

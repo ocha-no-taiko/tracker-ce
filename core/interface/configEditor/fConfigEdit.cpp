@@ -185,6 +185,10 @@ void cConfigEditor::stop()
 
     exitOnButtonRelease = 0;
     moduleRefresh = 0;
+    // A menu action (Config > MIDI > DAW Control / Q.T.R.L.) switches the
+    // module from inside a button handler, which then goes on to move this
+    // frame. Its handle is about to belong to the next module's controls.
+    frameControl = -1;
 }
 
 void cConfigEditor::setConfigScreenFunct()
