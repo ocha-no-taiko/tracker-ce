@@ -5,6 +5,8 @@
 - **ファーム側**（このリポジトリの `core/interface/dawControl/`）：Tracker に「DAW Control」画面を追加します。この画面では、操作を USB MIDI で Live に送り、Live から届いた状態をパッドの LED と画面に表示します。
 - **Live 側**（`ableton/PolyendTrackerDAW/`）：MIDI Remote Script（Control Surface）です。どのボタンで何をするかは、ここの `mapping.json` で決めます。
 
+仕様をまとめた PDF：`docs/live_tracker_spec/LiveTracker_spec.pdf`（元は同じフォルダの `spec.html`。作り直し方は PDF の最後）
+
 > 対象は初代 Tracker（MK66）です。Tracker+ / Mini 用のビルドも通りますが、実機での確認はしていません。
 > 改造ファームは自己責任で使ってください（公式の README にある注意書きのとおり、保証の対象外です）。
 

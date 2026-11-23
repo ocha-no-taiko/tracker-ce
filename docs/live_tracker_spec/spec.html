@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Live Tracker 仕様書</title>
+<style>
+@font-face { font-family: "AP"; src: url("../../tools/fonts/AnonymousPro/AnonymousPro-Regular.ttf"); }
+@font-face { font-family: "AP"; font-weight: bold; src: url("../../tools/fonts/AnonymousPro/AnonymousPro-Bold.ttf"); }
+@page { size: A4; margin: 16mm 15mm 16mm 15mm;
+  @bottom-center { content: counter(page) " / " counter(pages); font: 8pt "AP", monospace; color: #888; } }
+:root { --ink: #1a1a1a; --sub: #666; --line: #d6d6d6; --bg: #f4f4f4; --accent: #121212; }
+* { box-sizing: border-box; }
+body { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; font-size: 9.3pt; line-height: 1.65; color: var(--ink); margin: 0; }
+h1, h2, h3, code, .mono { font-family: "AP", "Menlo", monospace; }
+h2 { font-size: 14pt; margin: 0 0 8px; padding: 4px 0 6px; border-bottom: 1.5px solid var(--accent); break-after: avoid; }
+h2 .jp, h3 .jp { font-family: "Hiragino Sans", sans-serif; font-weight: 600; }
+h2 .no { color: var(--sub); margin-right: 8px; }
+h3 { font-size: 10.5pt; margin: 14px 0 4px; break-after: avoid; }
+p { margin: 4px 0 8px; }
+ul { margin: 4px 0 8px; padding-left: 18px; }
+li { margin: 1px 0; }
+code { font-size: 9pt; background: var(--bg); padding: 0 3px; border-radius: 2px; }
+pre { font-family: "AP", Menlo, monospace; font-size: 8.6pt; background: var(--bg); padding: 8px 10px; border-radius: 3px; white-space: pre-wrap; margin: 4px 0 10px; break-inside: avoid; }
+table { width: 100%; border-collapse: collapse; margin: 4px 0 10px; font-size: 8.7pt; break-inside: auto; }
+tr { break-inside: avoid; }
+th, td { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+th { background: var(--accent); color: #fff; font-weight: 600; border-bottom: none; }
+td.k { font-family: "AP", Menlo, monospace; white-space: nowrap; }
+.note { color: var(--sub); font-size: 8.4pt; }
+.box { border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 6px 10px; margin: 6px 0 10px; background: #fafafa; break-inside: avoid; }
+section { margin-bottom: 16px; }
+.page { break-before: page; }
+
+/* cover */
+.cover { height: 258mm; overflow: hidden; display: flex; flex-direction: column; }
+.cover .top { border-bottom: 1.5px solid var(--accent); padding-bottom: 6px; display: flex; justify-content: space-between; font: 9pt "AP", monospace; color: var(--sub); }
+.cover h1 { font-size: 38pt; margin: 16mm 0 0; letter-spacing: 0.5px; }
+.cover .tag { font: 14pt "AP", monospace; margin: 2px 0 0; color: var(--sub); }
+.cover .sub { font-size: 12pt; margin: 8px 0 10mm; }
+.cover img { width: 100%; border: 1px solid #000; image-rendering: pixelated; }
+.cover .cap { font-size: 8.4pt; color: var(--sub); margin-top: 4px; }
+.cover .meta { margin-top: auto; display: grid; grid-template-columns: 32mm 1fr; row-gap: 2px; font-size: 9pt; }
+.cover .meta div:nth-child(odd) { font-family: "AP", monospace; color: var(--sub); }
+.toc { columns: 2; column-gap: 10mm; font-size: 9pt; margin: 0; padding-left: 0; list-style: none; }
+.toc li { font-family: "AP", monospace; }
+.toc li span { font-family: "Hiragino Sans", sans-serif; }
+
+/* diagrams */
+.arch { display: flex; align-items: stretch; gap: 0; margin: 6px 0 12px; break-inside: avoid; }
+.arch .node { flex: 1; border: 1.3px solid var(--accent); padding: 6px 8px; font-size: 8.4pt; }
+.arch .node b { font-family: "AP", monospace; font-size: 9.5pt; display: block; margin-bottom: 2px; }
+.arch .wire { width: 26mm; display: flex; flex-direction: column; justify-content: center; text-align: center; font: 7.6pt "AP", monospace; color: var(--sub); }
+.arch .wire::before { content: "<---------->"; color: var(--ink); }
+.screen-map { position: relative; width: 100%; margin: 6px 0 4px; }
+.screen-map img { width: 100%; display: block; border: 1px solid #000; image-rendering: pixelated; }
+.screen-map .pin { position: absolute; width: 17px; height: 17px; border-radius: 50%; background: #e8452c; color: #fff; font: bold 9px/17px "AP", monospace; text-align: center; transform: translate(-50%, -50%); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; }
+</style>
+</head>
+<body>
+
+<!-- ===================== cover ===================== -->
+<div class="cover">
+  <div class="top"><span>tracker-ce / daw-control</span><span>Specification</span></div>
+  <h1>Live Tracker</h1>
+  <div class="tag">Don't push, Track.</div>
+  <div class="sub">Polyend Tracker を Ableton Live のコントローラーにする改造ファーム＋Remote Script ── 仕様書</div>
+  <img src="screen.png" alt="DAW Control 画面">
+  <div class="cap">DAW Control 画面（実際の描画コードを Mac 上で動かして出した画像。800 × 480 px）</div>
+  <ul class="toc" style="margin-top:8mm">
+    <li>01 <span>概要と構成</span></li>
+    <li>02 <span>導入（SD カード・Live）</span></li>
+    <li>03 <span>使い方</span></li>
+    <li>04 <span>操作の割り当て</span></li>
+    <li>05 <span>パッドと LED</span></li>
+    <li>06 <span>画面</span></li>
+    <li>07 <span>設定ファイル</span></li>
+    <li>08 <span>通信の取り決め</span></li>
+    <li>09 <span>キーボード操作（keysender）</span></li>
+    <li>10 <span>制限と未確認の項目</span></li>
+    <li>11 <span>ビルド・テスト・ファイル構成</span></li>
+  </ul>
+  <div class="meta">
+    <div>Firmware</div><div>PolyendTracker_DAW_1.2.0.ptf</div>
+    <div>Remote Script</div><div>PolyendTrackerDAW 1.3.0</div>
+    <div>Repository</div><div>github.com/ocha-no-taiko/tracker-ce（ブランチ daw-control）</div>
+    <div>Date</div><div>2026-11-23（この日の時点の仕様）</div>
+  </div>
+</div>
+
+<!-- ===================== 01 ===================== -->
+<section class="page">
+<h2><span class="no">01</span><span class="jp">概要と構成</span></h2>
+<p>初代 Polyend Tracker のボタン・パッド・ジョグホイールで、Ableton Live の再生・録音・クリップ起動・ビュー切り替えなどを操作するための改造です。Push のような使い方を目指しています。Tracker と Mac は USB 1 本でつなぎ、USB MIDI でやり取りします。</p>
+
+<div class="arch">
+  <div class="node"><b>Polyend Tracker</b>改造ファーム DAW_1.2.0<br>「DAW Control」画面<br>ボタン・パッド・ジョグを MIDI で送る／LED と画面に状態を出す</div>
+  <div class="wire">USB MIDI<br>CC / Note / SysEx</div>
+  <div class="node"><b>PolyendTrackerDAW</b>Live の MIDI Remote Script 1.3.0<br><code>mapping.json</code> で割り当てを決める<br>状態・テンポ・ファイル名・help を送り返す</div>
+  <div class="wire">osascript<br>JXA</div>
+  <div class="node"><b>keysender.js</b>Live の API に無い操作を Mac のキー入力として送る<br>Live のウィンドウからファイル名を読む</div>
+</div>
+
+<h3>役割の分け方</h3>
+<ul>
+  <li><b>ファーム側</b>（<code>core/interface/dawControl/</code>）：ボタンを押したら決まった CC を送るだけです。どのボタンで何をするかは知りません。ただし「画面を閉じる」「Session／Note の切り替え」「Note モードのオクターブ」は Tracker の中で処理します。</li>
+  <li><b>Live 側</b>（<code>ableton/PolyendTrackerDAW/</code>）：届いた CC を <code>mapping.json</code> に従って Live の操作に変えます。割り当ての変更は Live 側だけで済み、ファームの書き直しは要りません。</li>
+  <li><b>文言・パラメーター</b>は JSON で管理します。Tracker 側は SD カードの <code>/DawControl.json</code>、Live 側は <code>mapping.json</code> です。</li>
+</ul>
+
+<h3>対象と前提</h3>
+<ul>
+  <li>対象機種：初代 Tracker（MK66）。Tracker+ / Mini 用のビルドも通りますが、実機での確認はしていません。</li>
+  <li>Mac：macOS。キーボード操作とファイル名の読み取りは macOS だけで動きます。</li>
+  <li>Live：MIDI Remote Script（Control Surface）が使える版。</li>
+  <li>非公式の改造ファームです。公式 README の注意書きのとおり、保証の対象外になります。</li>
+</ul>
+</section>
+
+<!-- ===================== 02 ===================== -->
+<section>
+<h2><span class="no">02</span><span class="jp">導入</span></h2>
+<h3><span class="jp">SD カードに入れるもの</span></h3>
+<table>
+  <tr><th style="width:38%">ファイル</th><th style="width:26%">置き場所</th><th>内容</th></tr>
+  <tr><td class="k">PolyendTracker_DAW_1.2.0.ptf</td><td class="k">/Firmware/</td><td>改造ファーム。Config &gt; Firmware &gt; Firmware update で書き込む</td></tr>
+  <tr><td class="k">LiveTracker.ptfont</td><td class="k">/（一番上）</td><td>DAW Control 画面専用のフォント（Anonymous Pro）。画面を開いている間だけ使う</td></tr>
+  <tr><td class="k">DawControl.json</td><td class="k">/（一番上）</td><td>Tracker 側の設定（MIDI 番号、Note モード、ラベル、画面の文言と色）。無くても既定値で動く</td></tr>
+  <tr><td class="k">Fonts/AnonymousPro.ptfont</td><td class="k">/Fonts/</td><td>任意。Tracker 全体の文字を Anonymous Pro にするとき、Config &gt; General &gt; Display font で選ぶ</td></tr>
+</table>
+<p class="note">画面下のラベルは DawControl.json が優先されます。古い JSON が残っていると、ファームを新しくしてもラベルは古いままです。起動しなくなったときは、/Firmware/ に公式の .ptf だけを入れて電源を入れ、底面のリセット穴を押すと戻せます（公式 README の Emergency Recovery）。</p>
+
+<h3><span class="jp">Live にスクリプトを入れる</span></h3>
+<pre>sh ableton/install.sh                  # 通常
+RESET_MAPPING=1 sh ableton/install.sh  # 編集した mapping.json も既定値に戻す</pre>
+<ul>
+  <li>コピー先：<code>~/Music/Ableton/User Library/Remote Scripts/PolyendTrackerDAW/</code></li>
+  <li><code>mapping.default.json</code> はいつも同梱の既定値で上書きします。<code>mapping.json</code> は、前回の既定値から編集されていれば残し、編集されていなければ新しい既定値に置き換えます。</li>
+  <li>スクリプト（.py）を入れ替えたら Live の再起動が必要です。</li>
+  <li>Live の <b>設定 &gt; Tempo &amp; MIDI</b>：コントロールサーフェス <code>PolyendTrackerDAW</code>、入力・出力とも <code>Tracker</code>。MIDI ポートの入力 <code>Tracker</code> の「トラック」をオン（Note モードの演奏をトラックに届けるため）。</li>
+</ul>
+</section>
+
+<!-- ===================== 03 ===================== -->
+<section>
+<h2><span class="no">03</span><span class="jp">使い方</span></h2>
+<ol style="padding-left:18px">
+  <li>Tracker と Mac を USB でつなぐ。</li>
+  <li>Tracker で <b>Shift + Config</b>、または <b>Config &gt; MIDI &gt; DAW Control</b> を選ぶ。</li>
+  <li>「&gt; info」の File Name にファイル名（未保存なら <code>(not saved)</code>）や BPM が出れば接続済み。<code>Waiting for Live...</code> のままなら Live の Control Surface の設定を見直す。</li>
+  <li>閉じるときは画面下ボタン 8（EXIT）か、もう一度 Shift + Config。</li>
+</ol>
+<div class="box">DAW Control 画面を開いている間は、Tracker 自身のシーケンサー・USB クロック・MIDI の受信は止まります。画面を閉じると元に戻ります。</div>
+
+<h3><span class="jp">モード</span></h3>
+<table>
+  <tr><th style="width:20%">モード</th><th>パッド</th><th style="width:30%">切り替え</th></tr>
+  <tr><td>Session</td><td>赤枠（12 トラック × 4 シーン）内のクリップを起動。LED はクリップの状態</td><td rowspan="2">画面下ボタン 7。ラベルは切り替え先（Session 中は「&gt; Note」、Note 中は「&gt; Session」）</td></tr>
+  <tr><td>Note</td><td>鍵盤として演奏（MIDI ch1）。Up／Down でオクターブ上下</td></tr>
+</table>
+</section>
+
+<!-- ===================== 04 ===================== -->
+<section class="page">
+<h2><span class="no">04</span><span class="jp">操作の割り当て（既定）</span></h2>
+<p>Live 側の <code>mapping.json</code> の既定値です。「Shift」は Tracker の Shift を押しながらの操作です。</p>
+<table>
+  <tr><th style="width:24%">Tracker の操作</th><th>Live の動作</th><th style="width:28%">mapping.json の動作名</th></tr>
+  <tr><td>Play</td><td>再生／停止（Shift：続きから再生）</td><td class="k">play_toggle / continue</td></tr>
+  <tr><td>Rec</td><td>Arrangement 録音（Shift：Session 録音）</td><td class="k">arrangement_record / session_record</td></tr>
+  <tr><td>Params</td><td>ミキサーの表示／非表示 ※1</td><td class="k">toggle_mixer</td></tr>
+  <tr><td>Performance</td><td>Session／Arrangement ビューの切り替え（Tab キーと同じ）</td><td class="k">toggle_session_arrangement</td></tr>
+  <tr><td>File</td><td>ブラウザの表示／非表示</td><td class="k">toggle_browser</td></tr>
+  <tr><td>Config</td><td>設定ウィンドウを開く ※1</td><td class="k">open_settings</td></tr>
+  <tr><td>Master</td><td>Main トラックのデバイスビューを開く／閉じる（閉じると元のトラックに戻る）</td><td class="k">toggle_main_devices</td></tr>
+  <tr><td>Note</td><td>選択中のクリップのクリップビューを開く／閉じる</td><td class="k">toggle_clip_view</td></tr>
+  <tr><td>Instr</td><td>選択中のトラックのデバイスビューを開く／閉じる</td><td class="k">toggle_device_view</td></tr>
+  <tr><td>Vol（FX1）／Fx（FX2）</td><td>選択中のトラックのデバイスを左／右に選ぶ</td><td class="k">device_prev / device_next</td></tr>
+  <tr><td>Copy</td><td>コピー（Shift：ペースト）※1</td><td class="k">copy / paste</td></tr>
+  <tr><td>Insert</td><td>オートメーションを再有効化（Shift：Home キー）※2</td><td class="k">re_enable_automation / home</td></tr>
+  <tr><td>Delete</td><td>選択範囲を削除 ※1</td><td class="k">delete</td></tr>
+  <tr><td>矢印</td><td>カーソル移動（矢印キーと同じ）※1</td><td class="k">cursor_up など</td></tr>
+  <tr><td>Shift + 矢印</td><td>範囲選択（Shift + 矢印キーと同じ）※1</td><td class="k">select_up など</td></tr>
+  <tr><td>Pattern</td><td>元に戻す（Shift：やり直し）</td><td class="k">undo / redo</td></tr>
+  <tr><td>Song</td><td>タップテンポ</td><td class="k">tap_tempo</td></tr>
+  <tr><td>ジョグホイール</td><td>右で拡大、左で縮小（Arrangement の時間軸）。Shift でテンポ ±1</td><td class="k">jog: zoom / tempo</td></tr>
+  <tr><td>画面下 1（Act）</td><td>選択中のトラックのオン／オフ（トラックアクティベーター）</td><td class="k">track_activator</td></tr>
+  <tr><td>画面下 2（Solo）</td><td>選択中のトラックのソロ</td><td class="k">solo_selected_track</td></tr>
+  <tr><td>画面下 3（Rec Arm）</td><td>選択中のトラックの録音アーム</td><td class="k">arm_selected_track</td></tr>
+  <tr><td>画面下 4（Undo）</td><td>元に戻す（Shift：やり直し）</td><td class="k">undo / redo</td></tr>
+  <tr><td>画面下 5（Redo）</td><td>やり直し</td><td class="k">redo</td></tr>
+  <tr><td>画面下 6（Metro）</td><td>メトロノーム（Shift：タップテンポ）</td><td class="k">metronome / tap_tempo</td></tr>
+  <tr><td>画面下 7</td><td>Session／Note モード切り替え（Tracker 側で処理）</td><td class="k">DawControl.json: mode</td></tr>
+  <tr><td>画面下 8（EXIT）<br>Shift + Config</td><td>DAW Control 画面を閉じる（Tracker 側で処理）</td><td class="k">DawControl.json: exit</td></tr>
+  <tr><td>Up／Down（Note 中）</td><td>オクターブ上下（Tracker 側で処理。カーソル移動にはならない）</td><td class="k">octaveUp / octaveDown</td></tr>
+</table>
+<p class="note">※1 Live の API に無い操作なので、Mac のキーボードショートカットとして送ります（09 章）。※2 Home キーは、Arrangement では挿入マーカーを先頭へ、Session では先頭のトラックへ移動します。赤枠は選択中のトラック・シーンについていきます（<code>ringFollowsSelection: true</code>）。</p>
+</section>
+
+<!-- ===================== 05 ===================== -->
+<section>
+<h2><span class="no">05</span><span class="jp">パッドと LED</span></h2>
+<div class="two">
+<div>
+<h3><span class="jp">Session モード</span></h3>
+<p>48 個のパッド（12 × 4）が赤枠内のクリップに対応し、ch16 のノート 36〜83 を送ります。LED は Live から同じ番号のノートで届き、ベロシティが LED の値です。Tracker のパッドは単色なので、クリップの色は出ません。</p>
+<table>
+  <tr><th>クリップの状態</th><th>ledValues</th><th>値</th></tr>
+  <tr><td>空</td><td class="k">—</td><td>0（消灯）</td></tr>
+  <tr><td>停止中</td><td class="k">stopped</td><td>6</td></tr>
+  <tr><td>再生中</td><td class="k">playing</td><td>31</td></tr>
+  <tr><td>再生待ち</td><td class="k">triggered</td><td>63（点滅）</td></tr>
+  <tr><td>録音中</td><td class="k">recording</td><td>52（点滅）</td></tr>
+  <tr><td>録音待ち</td><td class="k">triggeredToRecord</td><td>42（点滅）</td></tr>
+  <tr><td>アーム中の空き</td><td class="k">armedEmpty</td><td>2</td></tr>
+</table>
+<p class="note">値の意味：0＝消灯、1〜31＝点灯（明るさ）、33〜63＝点滅（明るさは値 − 32）。</p>
+</div>
+<div>
+<h3><span class="jp">Note モード</span></h3>
+<p>パッドを鍵盤にして、ch1 のノートを送ります（DawControl.json の <code>noteMode</code>）。</p>
+<table>
+  <tr><th>項目</th><th>既定値</th></tr>
+  <tr><td class="k">root</td><td>36（左下のパッドの音）</td></tr>
+  <tr><td class="k">rowOffset</td><td>12（1 段上がると 1 オクターブ上）</td></tr>
+  <tr><td class="k">scale</td><td>[0, 2, 4, 5, 7, 9, 11]（メジャー）</td></tr>
+  <tr><td class="k">velocity</td><td>100</td></tr>
+  <tr><td class="k">ledRoot</td><td>20（ルート音のパッド）</td></tr>
+  <tr><td class="k">ledInScale</td><td>4（スケール内のパッド）</td></tr>
+  <tr><td class="k">ledPressed</td><td>31（押している間）</td></tr>
+</table>
+<p class="note">初代 Tracker のパッドはベロシティを送らないので、強さは固定です。</p>
+</div>
+</div>
+</section>
+
+<!-- ===================== 06 ===================== -->
+<section class="page">
+<h2><span class="no">06</span><span class="jp">画面</span></h2>
+<div class="screen-map">
+  <img src="screen.png" alt="">
+  <span class="pin" style="left:1.5%;top:3%">1</span>
+  <span class="pin" style="left:2%;top:11%">2</span>
+  <span class="pin" style="left:1.6%;top:31%">3</span>
+  <span class="pin" style="left:2%;top:49.5%">4</span>
+  <span class="pin" style="left:50%;top:6.5%">5</span>
+  <span class="pin" style="left:50.3%;top:10.5%">6</span>
+  <span class="pin" style="left:1.5%;top:96.7%">7</span>
+</div>
+<table>
+  <tr><th style="width:6%">#</th><th style="width:22%">部分</th><th>内容</th><th style="width:22%">出どころ</th></tr>
+  <tr><td>1</td><td>タイトル</td><td>「Live Tracker」と、その下の横線。画面のふちに外枠</td><td class="k">screen.title</td></tr>
+  <tr><td>2</td><td>ロゴ・コピー</td><td>ドット絵のロゴ、「Don't push, Track.」、「©2026 Tusq.」</td><td class="k">tagline / credit</td></tr>
+  <tr><td>3</td><td>説明文</td><td>説明、注意書き（2 行に折り返し）、詳細のリンク</td><td class="k">description / disclaimer / moreDetail</td></tr>
+  <tr><td>4</td><td>&gt; info</td><td>File Name、Project Name、BPM、Beat、Metro</td><td>Live から（08 章）</td></tr>
+  <tr><td>5</td><td>区切り線</td><td>x = 399 の縦の点線（6 px 描いて 4 px 空ける）</td><td>固定</td></tr>
+  <tr><td>6</td><td>&gt; help</td><td>ボタンの割り当ての一覧（最大 16 行）</td><td>mapping.json の <code>help</code></td></tr>
+  <tr><td>7</td><td>下のラベル</td><td>画面下ボタン 8 個のラベル。各ボタンの真上（x = 50 + 100 × i）に中央揃え</td><td class="k">labels</td></tr>
+</table>
+
+<h3><span class="jp">info の表示ルール</span></h3>
+<table>
+  <tr><th style="width:22%">行</th><th>表示</th></tr>
+  <tr><td>File Name</td><td>未接続：<code>Waiting for Live...</code>／Live Set が未保存：<code>(not saved)</code>／保存済み：ファイル名（例：MySong.als）。枠に入らない長さは末尾を「...」で省略</td></tr>
+  <tr><td>Project Name</td><td>Set が入っているプロジェクトのフォルダ名（末尾の「 Project」は外す）</td></tr>
+  <tr><td>BPM</td><td>小数点以下が 0 なら整数（120）、それ以外は 1 桁（120.5）</td></tr>
+  <tr><td>Beat</td><td>拍子（4/4 など）</td></tr>
+  <tr><td>Metro</td><td>メトロノームのオン／オフ（<code>On</code>／<code>Off</code>）</td></tr>
+</table>
+<p class="note">ファイル名は 1 秒ごとに確かめ、変わったときだけ送ります。未接続の間は BPM 以下も空欄です。</p>
+
+<h3><span class="jp">フォント</span></h3>
+<p>文字は Anonymous Pro（SIL Open Font License）です。画面を開くと SD カードの <code>/LiveTracker.ptfont</code> を読み込み、閉じると Config で選んでいるフォントに戻します。ファイルが無いときは、いつものフォントで表示します（文字幅が合わないので長い文は途中で切れます）。</p>
+<table>
+  <tr><th>用途</th><th>大きさ</th><th>1 文字のセル</th><th>使う場所</th></tr>
+  <tr><td>本文</td><td>9 px</td><td>9 × 17</td><td>info・help の中身、下のラベル</td></tr>
+  <tr><td>本文（太字）</td><td>9 px</td><td>9 × 19</td><td>タイトル、見出し（&gt; info、&gt; help）</td></tr>
+  <tr><td>小</td><td>6 px</td><td>6 × 11</td><td>説明文</td></tr>
+  <tr><td>小（太字）</td><td>6 px</td><td>6 × 11</td><td>キャッチコピーなど</td></tr>
+  <tr><td>極小</td><td>5 px</td><td>5 × 10</td><td>注意書き、詳細のリンク</td></tr>
+</table>
+<p class="note">出せる文字は ASCII（32〜126）と ©（セル 127 に入れてある）だけです。日本語などは「?」になります。極小の 5 px は、これより小さいと読めなくなるための下限です。</p>
+
+<h3><span class="jp">主な座標（px、画面 800 × 480）</span></h3>
+<table>
+  <tr><th>要素</th><th>位置</th><th>要素</th><th>位置</th></tr>
+  <tr><td>タイトル</td><td class="k">(19, 13)、線 y=27</td><td>info 見出し</td><td class="k">(28, 238)</td></tr>
+  <tr><td>ロゴ</td><td class="k">(25, 49)〜(188, 130)</td><td>info ラベル／値</td><td class="k">x=38 ／ x=165〜392</td></tr>
+  <tr><td>キャッチコピー</td><td class="k">(202, 91)</td><td>info の行</td><td class="k">y=271, 294, 337, 360, 382</td></tr>
+  <tr><td>クレジット</td><td class="k">右端 379, y=123</td><td>help 見出し</td><td class="k">(414, 49)</td></tr>
+  <tr><td>説明文</td><td class="k">x=22, y=148</td><td>help ボタン／説明</td><td class="k">x=426 ／ x=501〜790</td></tr>
+  <tr><td>注意書き</td><td class="k">x=22, y=163（行送り 14）</td><td>help の行</td><td class="k">y = 82 + 22.3 × 行</td></tr>
+  <tr><td>詳細のリンク</td><td class="k">x=22, y=202</td><td>下のラベル</td><td class="k">中心 x=50+100i, y=464</td></tr>
+</table>
+<p class="note">位置と大きさは <code>core/interface/dawControl/dawScreen.cpp</code> の定数で固定です。画面は「背景・info・help・ラベル」の 4 部分に分かれていて、変わった部分だけを描き直します。</p>
+</section>
+
+<!-- ===================== 07 ===================== -->
+<section class="page">
+<h2><span class="no">07</span><span class="jp">設定ファイル</span></h2>
+<h3><span class="jp">Live 側：mapping.json（操作の割り当て）</span></h3>
+<p>インストール先の <code>Remote Scripts/PolyendTrackerDAW/mapping.json</code> を編集し、Live の Control Surface をいったん「なし」にしてから選び直すと反映されます。</p>
+<pre>"buttons": {
+  "Play": { "press": "play_toggle", "shift": "continue" }
+},
+"jog":  { "default": "zoom", "shift": "tempo" },
+"help": [ ["Params", "Mixer"], [], ["Play", "Play"] ]</pre>
+<table>
+  <tr><th style="width:22%">キー</th><th>内容</th></tr>
+  <tr><td class="k">buttons</td><td>ボタン名ごとに <code>press</code>（押したとき）と <code>shift</code>（Shift を押しながら）の動作。ボタン名：Screen1〜Screen8、Params、Performance、File、Config、Master、SampleLoad、SamplePlay、SampleEdit、SampleRec、Song、Note、Instr、Vol、Fx、Pattern、Play、Copy、Insert、Up、Delete、Rec、Shift、Left、Down、Right</td></tr>
+  <tr><td class="k">jog</td><td><code>zoom</code>、<code>scene_select</code>、<code>track_select</code>、<code>tempo</code> のどれか</td></tr>
+  <tr><td class="k">ledValues</td><td>クリップの状態ごとの LED の値（05 章）</td></tr>
+  <tr><td class="k">ringFollowsSelection</td><td>赤枠を選択中のトラック・シーンに合わせて動かすか</td></tr>
+  <tr><td class="k">help</td><td>画面の「&gt; help」。<code>["ボタン", "説明"]</code> を上から並べる。<code>[]</code> は空行。最大 16 行、ボタンは 11 文字・説明は 39 文字まで（「:」は画面側で付ける）。割り当てを変えたらここも直す</td></tr>
+  <tr><td class="k">channel ほか</td><td>MIDI チャンネルと CC 番号。DawControl.json 側とそろえる</td></tr>
+</table>
+<p><b>使える動作</b>：<span class="mono" style="font-size:8.4pt">toggle_mixer, automation_mode, toggle_session_arrangement, toggle_browser, open_settings, toggle_main_devices, toggle_clip_view, toggle_device_view, device_prev, device_next, copy, paste, delete, home, cursor_up/down/left/right, select_up/down/left/right, re_enable_automation, track_activator, solo_selected_track, play_toggle, continue, stop, arrangement_record, session_record, overdub, metronome, tap_tempo, tempo_up, tempo_down, undo, redo, capture_midi, stop_all_clips, stop_selected_track, arm_selected_track, track_prev, track_next, scene_prev, scene_next, ring_left, ring_right, ring_up, ring_down, ring_page_left, ring_page_right, ring_page_up, ring_page_down, scene_launch_1〜4, key:&lt;ショートカット&gt;</span></p>
+<p class="note"><code>key:cmd+shift+c</code> のように書くと任意のショートカットを送れます。修飾キーは cmd・shift・alt（option）・ctrl。</p>
+
+<h3><span class="jp">Tracker 側：SD カードの /DawControl.json</span></h3>
+<p>DAW Control 画面を開くたびに読み直します。見本は <code>sd-card/DawControl.json</code> です。</p>
+<table>
+  <tr><th style="width:22%">キー</th><th>内容（既定値）</th></tr>
+  <tr><td class="k">controlChannel</td><td>ボタン・LED・状態に使うチャンネル（16）</td></tr>
+  <tr><td class="k">noteChannel</td><td>Note モードの演奏のチャンネル（1）</td></tr>
+  <tr><td class="k">buttonCcBase ほか</td><td>buttonCcBase 20、jogCc 70、helloCc 119、padNoteBase 36、padVelocity 127</td></tr>
+  <tr><td class="k">feedback</td><td>Live から届く CC の番号（08 章）</td></tr>
+  <tr><td class="k">noteMode</td><td>Note モードの音域・スケール・LED（05 章）</td></tr>
+  <tr><td class="k">localButtons</td><td>Tracker の中で処理するボタン：exit = Screen8、mode = Screen7、octaveUp = Up、octaveDown = Down。名前か番号で書く。<code>null</code> で無効</td></tr>
+  <tr><td class="k">labels</td><td>画面下のラベル 8 個：Act, Solo, Rec Arm, Undo, Redo, Metro, ""（モード表示）, EXIT</td></tr>
+  <tr><td class="k">screen</td><td>画面の文言・色・フォント（下の表）</td></tr>
+</table>
+<table>
+  <tr><th style="width:22%">screen のキー</th><th>既定値</th></tr>
+  <tr><td class="k">font</td><td><code>/LiveTracker.ptfont</code>（<code>""</code> でいつものフォント）</td></tr>
+  <tr><td class="k">title / tagline / credit</td><td>Live Tracker ／ Don't push, Track. ／ ©2026 Tusq.</td></tr>
+  <tr><td class="k">description</td><td>A system for controlling Ableton Live with Polyend Tracker.</td></tr>
+  <tr><td class="k">disclaimer</td><td>* This firmware is unofficial. Therefore, we cannot accept responsibility for any damage that may occur as a result of using it.</td></tr>
+  <tr><td class="k">moreDetail</td><td>More Detail: https://github.com/ocha-no-taiko/tracker-ce/tree/daw-control</td></tr>
+  <tr><td class="k">infoTitle / helpTitle</td><td>&gt; info ／ &gt; help</td></tr>
+  <tr><td class="k">infoLabels</td><td>File Name:, Project Name:, BPM:, Beat:, Metro:</td></tr>
+  <tr><td class="k">waiting / notSaved</td><td>Waiting for Live... ／ (not saved)</td></tr>
+  <tr><td class="k">metroOn / metroOff</td><td>On ／ Off</td></tr>
+  <tr><td class="k">colors</td><td>background #121212、text #FFFFFF、subText #FFFFFF、line #FFFFFF（"#RRGGBB"）</td></tr>
+</table>
+<p class="note">文言は UTF-8 で書きます。© はそのまま「©」と書きます（<code>©</code> の書き方は読めません）。</p>
+</section>
+
+<!-- ===================== 08 ===================== -->
+<section class="page">
+<h2><span class="no">08</span><span class="jp">通信の取り決め</span></h2>
+<p>USB MIDI のポートは 1 つなので、チャンネルで役割を分けています（既定値）。</p>
+<table>
+  <tr><th style="width:16%">向き</th><th style="width:22%">内容</th><th>メッセージ</th></tr>
+  <tr><td>Tracker → Live</td><td>ボタン（ID 0〜43）</td><td>ch16 CC（20 + ID）。押す 127 ／離す 0</td></tr>
+  <tr><td>Tracker → Live</td><td>パッド（Session）</td><td>ch16 ノート 36〜83</td></tr>
+  <tr><td>Tracker → Live</td><td>パッド（Note）</td><td>ch1 ノート</td></tr>
+  <tr><td>Tracker → Live</td><td>ジョグ</td><td>ch16 CC70。64 + 変化量</td></tr>
+  <tr><td>双方向</td><td>接続の合図</td><td>ch16 CC119。127 ＝開いた ／ 0 ＝閉じた。受け取った Live は状態をすべて送り直す</td></tr>
+  <tr><td>Live → Tracker</td><td>パッド LED</td><td>ch16 ノート 36〜83。ベロシティ ＝ LED の値</td></tr>
+  <tr><td>Live → Tracker</td><td>状態</td><td>ch16 CC100〜104（再生、Arrangement 録音、Session 録音、オーバーダブ、メトロノーム）</td></tr>
+  <tr><td>Live → Tracker</td><td>テンポ</td><td>ch16 CC110 ／ 111（テンポ × 10 の上位 7 ビット ／ 下位 7 ビット）</td></tr>
+  <tr><td>Live → Tracker</td><td>赤枠と選択</td><td>ch16 CC112（トラック位置）、CC113（シーン位置）、CC114（選択トラック）</td></tr>
+  <tr><td>Live → Tracker</td><td>拍子</td><td>ch16 CC115（分子）、CC116（分母）</td></tr>
+  <tr><td>Live → Tracker</td><td>画面の文字</td><td>SysEx（下）</td></tr>
+</table>
+
+<h3><span class="jp">SysEx</span></h3>
+<pre>F0 7D 50 54 &lt;種類&gt; &lt;番号&gt; &lt;ASCII の文字列&gt; F7
+          "P" "T"</pre>
+<table>
+  <tr><th style="width:12%">種類</th><th style="width:22%">内容</th><th>番号と文字列</th></tr>
+  <tr><td class="k">1</td><td>ファイル名</td><td>番号 0。空文字列 ＝ 未保存</td></tr>
+  <tr><td class="k">2</td><td>プロジェクト名</td><td>番号 0</td></tr>
+  <tr><td class="k">3</td><td>help の行</td><td>番号 ＝ 行（0〜15）。<code>ボタン&lt;TAB&gt;説明</code>、空文字列は空行。番号 0 を受け取ると一覧を作り直す</td></tr>
+</table>
+<ul>
+  <li><code>7D</code> は非商用向けのメーカー ID です。<code>F0 7D 50 54</code> で始まらない SysEx は捨てます。</li>
+  <li>Live 側は送る前に文字を ASCII にそろえます。Tracker 側でも ASCII 以外は「?」にします。</li>
+  <li>Tracker は受け取った SysEx を 32 個までためて（1 個 80 バイトまで）、画面の更新のときにまとめて反映します。</li>
+  <li>SysEx を受け取るのは初代 Tracker（MK66）のビルドだけです。Tracker+ / Mini では、ファイル名と help はファームの既定のままです。</li>
+</ul>
+<h3><span class="jp">接続の流れ</span></h3>
+<ol style="padding-left:18px">
+  <li>Tracker が DAW Control 画面を開くと CC119 = 127 を送る。</li>
+  <li>Live は LED・状態・テンポ・拍子・ファイル名・help をすべて送る。</li>
+  <li>以後、Live は変化があったものだけを送る（ファイル名は 1 秒ごとに確認）。</li>
+  <li>画面を閉じると Tracker は CC119 = 0 を送る。</li>
+</ol>
+</section>
+
+<!-- ===================== 09 ===================== -->
+<section>
+<h2><span class="no">09</span><span class="jp">キーボード操作（keysender）</span></h2>
+<p>コピー・ペースト・削除・矢印・範囲選択・設定・ミキサーは Live の API に操作が無いため、同梱の <code>keysender.js</code>（osascript の JXA）が Mac のキー入力として Live に送ります。Live のウィンドウからファイル名を読むのも、このスクリプトです。</p>
+<ul>
+  <li>macOS だけで動きます。</li>
+  <li>Live に「アクセシビリティ」の許可が要ります：<b>システム設定 &gt; プライバシーとセキュリティ &gt; アクセシビリティ</b> で Ableton Live をオン。オンにするまでキーは届かず、ファイル名も出ません。</li>
+  <li>キーは Live が最前面のときだけ送ります。ほかのアプリには何も入りません。</li>
+  <li>結果は <code>Remote Scripts/PolyendTrackerDAW/keysender.log</code> に残ります（許可の有無もここに出ます）。</li>
+  <li>ファイル名は、Live のメインウィンドウの文書の場所（AXDocument）とタイトル（AXTitle）から作ります。</li>
+</ul>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section>
+<h2><span class="no">10</span><span class="jp">制限と未確認の項目</span></h2>
+<h3><span class="jp">できないこと</span></h3>
+<ul>
+  <li>トラック名・クリップ名を Tracker の画面に出すこと</li>
+  <li>パッドのベロシティ（初代 Tracker のパッドは送らない）</li>
+  <li>デバイスのパラメーター操作</li>
+  <li>クリップの色を LED に出すこと（パッドが単色のため）</li>
+  <li>画面に日本語などを出すこと（「?」になる）</li>
+</ul>
+<h3><span class="jp">2026-11-23 時点で確認できていないこと</span></h3>
+<ul>
+  <li>Tracker の実機での新しい画面の見え方（1 px の線、極小の文字の読みやすさ、フォントの読み込みと戻し）</li>
+  <li>保存済みの Live Set でファイル名とプロジェクト名が出ること（未保存の判定は確認済み）</li>
+  <li>Live 再起動後の Remote Script 1.3.0 の動作</li>
+  <li>Tracker+ / Mini の実機での動作</li>
+</ul>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section>
+<h2><span class="no">11</span><span class="jp">ビルド・テスト・ファイル構成</span></h2>
+<h3><span class="jp">ビルド</span></h3>
+<p>GNU Arm Embedded Toolchain 10.3-2021.10 が必要です（公式 README と同じ）。</p>
+<pre>make original NPROC=$(sysctl -n hw.ncpu) ORIGINAL_POSTFIX=DAW_1.2.0
+# → build/PolyendTracker_DAW_1.2.0.ptf</pre>
+<h3><span class="jp">フォントを作る</span></h3>
+<pre>uv run --with pillow tools/fonts/make_ptfont.py --layout daw \
+    tools/fonts/AnonymousPro/AnonymousPro-Regular.ttf \
+    tools/fonts/AnonymousPro/AnonymousPro-Bold.ttf \
+    sd-card/LiveTracker.ptfont --preview preview.png</pre>
+<p class="note"><code>--layout daw</code> を外すと、Tracker 全体で使うフォント（sd-card/Fonts/AnonymousPro.ptfont）になります。</p>
+<h3><span class="jp">テスト</span></h3>
+<table>
+  <tr><th style="width:52%">コマンド</th><th>内容</th></tr>
+  <tr><td class="k">sh tests/dawControl/run.sh</td><td>ファームの JSON 読み込み（Mac で実行）</td></tr>
+  <tr><td class="k">sh tests/dawControl/preview.sh out.png</td><td>画面の描画を Mac 上で画像にする（<code>PREVIEW_NAMES=long</code> で長い名前の省略を確認）</td></tr>
+  <tr><td class="k">python3 ableton/tools/test_script_offline.py</td><td>Remote Script の動作（Live 不要）</td></tr>
+  <tr><td class="k">python3 ableton/tools/fake_tracker.py selftest 300</td><td>Tracker のふりをして Live と実際に通信</td></tr>
+</table>
+<h3><span class="jp">ファイル構成</span></h3>
+<table>
+  <tr><th style="width:44%">場所</th><th>内容</th></tr>
+  <tr><td class="k">core/interface/dawControl/</td><td>DAW Control 画面（fDawControl：入出力、gDawControl：表示、dawScreen：描画、dawControlConfig：JSON 読み込み）</td></tr>
+  <tr><td class="k">core/source/mtMidi.cpp</td><td>USB の SysEx を DAW Control に渡す</td></tr>
+  <tr><td class="k">platforms/mk66/source/UsbMidiImpl.cpp</td><td>SysEx の受け取り（初代 Tracker）</td></tr>
+  <tr><td class="k">ableton/PolyendTrackerDAW/</td><td>Remote Script（PolyendTrackerDAW.py、mapping.json、keysender.js）</td></tr>
+  <tr><td class="k">ableton/install.sh</td><td>Live へのインストール</td></tr>
+  <tr><td class="k">sd-card/</td><td>SD カードに入れる DawControl.json、LiveTracker.ptfont、Fonts/</td></tr>
+  <tr><td class="k">tools/fonts/</td><td>フォントの変換ツールと Anonymous Pro（OFL.txt）</td></tr>
+  <tr><td class="k">tests/dawControl/</td><td>JSON 読み込みのテスト、画面のプレビュー</td></tr>
+  <tr><td class="k">DAW_CONTROL.md</td><td>説明書（この仕様書の元）</td></tr>
+  <tr><td class="k">docs/live_tracker_spec/</td><td>この仕様書（spec.html → spec.pdf）</td></tr>
+</table>
+<h3><span class="jp">この仕様書を作り直す</span></h3>
+<pre>"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+    --no-pdf-header-footer --print-to-pdf=docs/live_tracker_spec/LiveTracker_spec.pdf \
+    docs/live_tracker_spec/spec.html</pre>
+</section>
+
+</body>
+</html>
