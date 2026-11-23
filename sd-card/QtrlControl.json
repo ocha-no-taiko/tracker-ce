@@ -1,0 +1,100 @@
+{
+  "controlChannel": 15,
+  "helloCc": 119,
+
+  "bindings": {
+    "Shift+Left": "tabPrev",
+    "Shift+Right": "tabNext",
+    "Shift+Insert": "home",
+    "Performance": "status",
+    "File": "logs",
+    "Config": "config",
+    "Params": "help",
+    "Left": "undo",
+    "Right": "redo",
+    "Delete": "quit"
+  },
+  "screenButtons": ["home", "status", "logs", "chat", "help", "undo", "redo", "quit"],
+  "sendButton": "Play",
+  "exitButton": "Config",
+
+  "labels": ["Home", "Status", "Logs", "Chat", "Help", "Undo", "Redo", "QUIT"],
+
+  "keyboard": {
+    "rows": [
+      ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "BS", "BS"],
+      ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "(", ")"],
+      ["a", "s", "d", "f", "g", "h", "j", "k", "l", ":", "CAPS", "CAPS"],
+      ["z", "x", "c", "v", "b", "n", "m", ",", ".", "?", "SP", "SP"]
+    ],
+    "shiftRows": [
+      ["!", "@", "#", "$", "%", "&", "*", "-", "+", "=", "BS", "BS"],
+      ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"],
+      ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "CAPS", "CAPS"],
+      ["Z", "X", "C", "V", "B", "N", "M", "'", "\"", "/", "SP", "SP"]
+    ],
+    "marked": [27, 30],
+    "ledKey": 3,
+    "ledMarked": 16,
+    "ledPressed": 31
+  },
+
+  "screen": {
+    "font": "/Qtrl.ptfont",
+    "title": "Q.T.R.L.",
+    "tagline": "Quick Terminal for Remote & Logs",
+    "credit": "©2026 Tusq",
+    "headings": ["Home", "Status", "Log", "Chat", "Help", "QUIT"],
+    "welcome": "Welcome to Q.T.R.L. !!",
+    "intro": "Select a tab using the buttons at the bottom of the screen.",
+    "home": [
+      ["Home:", "This tab."],
+      ["Status:", "Check the current system status."],
+      ["Logs:", "Check the system logs."],
+      ["Chat:", "Talk to \"qoala\""],
+      ["Help:", "View commands & key bindings."],
+      ["Undo:", "Undo the last action."],
+      ["Redo:", "Redo an undone action."],
+      ["QUIT:", "Quit Q.T.R.L."]
+    ],
+    "help": [
+      ["Switch tabs:", "Shift+Arrow"],
+      ["Home:", "Shift+Insert (Home)"],
+      ["Status:", "Perform"],
+      ["Logs:", "File"],
+      ["Config:", "Config"],
+      ["Help:", "Instrument Parameters"],
+      ["Undo:", "Left Arrow"],
+      ["Redo:", "Right Arrow"],
+      ["QUIT:", "Delete"]
+    ],
+    "systemLabel": "Entire system:",
+    "checkDetail": "Please Check Detail",
+    "waiting": "Waiting for the server...",
+    "nodeNames": ["Terminal", "QTRL1", "QTRL2", "FAB1", "Server"],
+    "nodeSubs": ["Polyend Tracker", "Arduino Uno Q", "ESP32-CAM", "Bambu Lab A1 mini", "MacBook Pro"],
+    "statusUnknown": "No Report.",
+    "logsHint": "* Use arrows to move",
+    "logHint": "* Scroll using the jog wheel",
+    "logEmpty": "No logs yet.",
+    "logLoading": "Loading...",
+    "chatHint": "* Type on Pads, send with Play. Insert a line break with Shift+Play.",
+    "chatBusy": "qoala is thinking...",
+    "quitBefore": "Are you sure you want to ",
+    "quitWord": "QUIT",
+    "quitAfter": " the system?",
+    "cancel": "Cancel",
+    "cancelSub": "(Back to Home)",
+    "colors": {
+      "background": "#121212",
+      "text": "#FFFFFF",
+      "subText": "#FFFFFF",
+      "line": "#FFFFFF",
+      "ok": "#00FF80",
+      "alert": "#FF0000",
+      "unknown": "#808080",
+      "select": "#FFFF00",
+      "quit": "#FF0000"
+    }
+  }
+}

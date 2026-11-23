@@ -153,6 +153,7 @@ typedef enum enControlId
     controlIdSimpleBox,
     controlIdNotesKeyboardLabel,
     controlIdDawScreen,
+    controlIdQtrlScreen,
 
     /*
      *

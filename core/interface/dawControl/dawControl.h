@@ -11,6 +11,7 @@
 
 // Called from the USB MIDI receive handlers (mtMidi.cpp). While the screen is
 // open every USB note/CC goes through here instead of the normal handlers.
+// The Q.T.R.L. screen uses the same hooks (they forward to it while it is open).
 bool dawControlIsActive();
 void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, uint8_t data2);
 // SysEx from USB, possibly in pieces (complete = last piece).

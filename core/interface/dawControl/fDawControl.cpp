@@ -12,6 +12,7 @@
 #include "cr_section_macros.h"
 #include "core/interface.h"
 #include "core/songTimer.h"
+#include "qtrl/qtrl.h"
 
 cDawControl dawControl;
 static cDawControl* DC = &dawControl;
@@ -58,13 +59,20 @@ bool s_sysExTooLong = false;
 constexpr uint8_t kSysExHeader[4] = { 0xF0, 0x7D, 0x50, 0x54 };
 } // namespace
 
+// The USB MIDI handlers (mtMidi.cpp) route through these three for both
+// control screens: DAW Control and Q.T.R.L. (qtrl/qtrl.h).
 bool dawControlIsActive()
 {
-    return s_active;
+    return s_active || qtrlIsActive();
 }
 
 void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, uint8_t data2)
 {
+    if (qtrlIsActive())
+    {
+        qtrlReceiveUsbMidi(status, channel, data1, data2);
+        return;
+    }
     if (channel != dawControlConfig.controlChannel)
         return;
 
@@ -80,6 +88,11 @@ void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, ui
 
 void dawControlReceiveUsbSysEx(const uint8_t* data, uint16_t length, bool complete)
 {
+    if (qtrlIsActive())
+    {
+        qtrlReceiveUsbSysEx(data, length, complete);
+        return;
+    }
     for (uint16_t i = 0; i < length; i++)
     {
         if (s_sysExPart.length < kSysExLength)

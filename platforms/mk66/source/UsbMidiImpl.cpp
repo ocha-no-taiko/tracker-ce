@@ -63,3 +63,9 @@ void UsbMidiImpl::setReceiveActions(MidiReceiveActions* receiveActions)
     if (receiveActions->sysEx != nullptr)
         usbMIDI.setHandleSystemExclusive(receiveActions->sysEx);
 }
+
+void UsbMidiImpl::sendSysEx(const uint8_t* data, uint16_t length)
+{
+    usbMIDI.sendSysEx(length, data, true);
+    usbMIDI.send_now();
+}

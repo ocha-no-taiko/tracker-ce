@@ -380,6 +380,9 @@ const char firmUpdDesc[] = {
 const char dawControlDesc[] = { "Turns the Tracker into a USB controller for Ableton Live (needs the "
                                 "PolyendTrackerDAW remote script). Shift + Config opens it from any "
                                 "screen and also closes it. Settings: /DawControl.json on the SD card." };
+const char qtrlDesc[] = { "Q.T.R.L. (Quick Terminal for Remote & Logs): the Tracker as the terminal of "
+                          "qtrl-server on the Mac over USB. Shift + Config closes it. Settings: "
+                          "/QtrlControl.json on the SD card." };
 
 const char slaveClockCompDesc[] = { "Allows compensating latency of incoming clock signal by "
                                     "number of clock pulses, where 1 pulse = 1/6 of step. "

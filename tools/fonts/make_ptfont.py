@@ -20,6 +20,8 @@ DAW Control screen draws UTF-8 "©" with it).
         tools/fonts/AnonymousPro/AnonymousPro-Bold.ttf \\
         sd-card/LiveTracker.ptfont
 
+    # the font of the Q.T.R.L. screen (--layout qtrl, same arguments)
+
 File layout (see cDisplay::loadCustomFontFromSD in core/libs/NewDisplay/display.cpp):
     header  "PTFN", u16 version 1, u16 font count 5, 8 reserved bytes
     5 x     u32 offset, u32 size, u16 handle, u16 format
@@ -61,6 +63,17 @@ DAW_SLOTS = [
     {"name": "small", "bold": False, "advance": 6},
     {"name": "tiny", "bold": False, "advance": 5},
     {"name": "main bold", "bold": True, "advance": 9},
+    {"name": "small bold", "bold": True, "advance": 6},
+]
+
+# --layout qtrl: the font of the Q.T.R.L. screen (Qtrl.ptfont). Same slots as
+# --layout daw with a narrower main text (8 px), so the lists of the design
+# fit beside the divider.
+QTRL_SLOTS = [
+    {"name": "main", "bold": False, "advance": 8},
+    {"name": "small", "bold": False, "advance": 6},
+    {"name": "tiny", "bold": False, "advance": 5},
+    {"name": "main bold", "bold": True, "advance": 8},
     {"name": "small bold", "bold": True, "advance": 6},
 ]
 
@@ -234,12 +247,12 @@ def main():
     parser.add_argument("bold")
     parser.add_argument("output")
     parser.add_argument("--preview")
-    parser.add_argument("--layout", choices=["global", "daw"], default="global",
+    parser.add_argument("--layout", choices=["global", "daw", "qtrl"], default="global",
                         help="global: Roboto Mono cell sizes for the whole UI; "
                              "daw: the DAW Control screen font")
     args = parser.parse_args()
-    slots = DAW_SLOTS if args.layout == "daw" else SLOTS
-    build = build_daw_slot if args.layout == "daw" else build_slot
+    slots = {"daw": DAW_SLOTS, "qtrl": QTRL_SLOTS}.get(args.layout, SLOTS)
+    build = build_slot if args.layout == "global" else build_daw_slot
 
     blocks = []
     previews = []

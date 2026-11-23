@@ -10,6 +10,7 @@
 #include "core/titleBar.h"
 
 #include "dawControl/dawControl.h"
+#include "qtrl/qtrl.h"
 #include "fileBrowser/GlobalFileBrowser.h"
 #include "imageViewer/imageViewer.h"
 #include "instrumentEditor/instrumentEditor.h"
@@ -55,7 +56,7 @@ extern uint8_t isAudioOutMuted();
 //=======================================================================
 //=======================================================================
 
-const uint8_t Interface::modulesCount = 14;
+const uint8_t Interface::modulesCount = 15;
 const hModule Interface::modules[modulesCount] = {
     &projectEditor,    // 0
     &sampleImporter,   // 1
@@ -71,6 +72,7 @@ const hModule Interface::modules[modulesCount] = {
     &globalFileBrowser, // 11
     &masterParams,      // 12
     &dawControl,        // 13
+    &qtrl,              // 14
 };
 
 const uint8_t Interface::modulesButtonsCount = 11;
@@ -679,6 +681,15 @@ void interfaceEnvents(uint8_t event, void* param1, void* param2, void* param3)
             if (param1 != nullptr)
                 mtInterface.deactivateModule((hModule)param1);
             mtInterface.activateModule(&dawControl, 0);
+            break;
+        }
+        case eventActivateQtrl:
+        {
+            if (mtInterface.onScreenModule == &qtrl)
+                break;
+            if (param1 != nullptr)
+                mtInterface.deactivateModule((hModule)param1);
+            mtInterface.activateModule(&qtrl, 0);
             break;
         }
         case eventToggleActiveModule:

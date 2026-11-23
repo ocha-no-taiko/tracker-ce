@@ -136,6 +136,10 @@ class UsbMidi : public Midi
     };
 
     virtual void setReceiveActions(MidiReceiveActions* receiveActions) = 0;
+
+    // A complete SysEx message (F0 ... F7). Optional: platforms without it
+    // send nothing (only the Q.T.R.L. screen uses it).
+    virtual void sendSysEx([[maybe_unused]] const uint8_t* data, [[maybe_unused]] uint16_t length) {}
 };
 
 class UartMidi : public Midi

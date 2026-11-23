@@ -1045,6 +1045,11 @@ void openDawControlAction()
     CE->eventFunct(eventActivateDawControl, CE, nullptr, nullptr);
 }
 
+void openQtrlAction()
+{
+    CE->eventFunct(eventActivateQtrl, CE, nullptr, nullptr);
+}
+
 void openManual1Action()
 {
     uint8_t folderIndex = 0;
