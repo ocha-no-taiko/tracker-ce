@@ -154,6 +154,7 @@ typedef enum enControlId
     controlIdNotesKeyboardLabel,
     controlIdDawScreen,
     controlIdQtrlScreen,
+    controlIdQ4Screen,
 
     /*
      *

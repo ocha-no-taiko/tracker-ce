@@ -1054,6 +1054,11 @@ void openQtrlAction()
     CE->eventFunct(eventActivateQtrl, CE, nullptr, nullptr);
 }
 
+void openQ4Action()
+{
+    CE->eventFunct(eventActivateQ4, CE, nullptr, nullptr);
+}
+
 void openManual1Action()
 {
     uint8_t folderIndex = 0;

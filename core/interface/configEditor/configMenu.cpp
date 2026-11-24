@@ -258,6 +258,9 @@ cMenuItem melDawControl(menuMidi,
 const strItemTypeActionButton qtrlSetup{ openQtrlAction, nullptr };
 cMenuItem melQtrl(menuMidi, "Q.T.R.L.", qtrlDesc, menuTypeItemActionButton, &qtrlSetup);
 
+const strItemTypeActionButton q4Setup{ openQ4Action, nullptr };
+cMenuItem melQ4(menuMidi, "Q-4", q4Desc, menuTypeItemActionButton, &q4Setup);
+
 //==================================================================================================================================================================
 // Firmware
 const strItemTypeActionButton updateFirmwareSetup{ firmwareUpgradeActivate, nullptr };

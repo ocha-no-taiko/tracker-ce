@@ -45,5 +45,6 @@ void usbStorageEnter();
 void usbAudioChange();
 void openDawControlAction();
 void openQtrlAction();
+void openQ4Action();
 
 #endif /* INTERFACE_CONFIGEDITOR_CONFIGMENUACTIONS_H_ */

@@ -277,6 +277,7 @@ enum interfaceEvents
 
     eventActivateDawControl,
     eventActivateQtrl,
+    eventActivateQ4,
 
     interfaceEventsCount
 };
