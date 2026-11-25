@@ -1059,6 +1059,11 @@ void openQ4Action()
     CE->eventFunct(eventActivateQ4, CE, nullptr, nullptr);
 }
 
+void openSotiAction()
+{
+    CE->eventFunct(eventActivateSoti, CE, nullptr, nullptr);
+}
+
 void openManual1Action()
 {
     uint8_t folderIndex = 0;

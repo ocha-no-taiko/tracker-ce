@@ -3,6 +3,7 @@
 #include "dawControl/dawControl.h"
 #include "qtrl/qtrl.h"
 #include "q4/q4.h"
+#include "soti/soti.h"
 
 #include "Platform.h"
 
@@ -51,7 +52,7 @@ void Interface::buttonChange(uint8_t n, uint8_t value)
     // Shift + Config opens the DAW Control screen from any screen (the
     // Q.T.R.L. screen uses it to close itself).
     if (n == interfaceButtonConfig && value == buttonPress && onScreenModule != nullptr &&
-        onScreenModule != &dawControl && onScreenModule != &qtrl && onScreenModule != &q4 && operatingMode == mtOperatingModeRun &&
+        onScreenModule != &dawControl && onScreenModule != &qtrl && onScreenModule != &q4 && onScreenModule != &soti && operatingMode == mtOperatingModeRun &&
         getPlatform()->getButtons()->isButtonPressed(interfaceButtonShift))
     {
         interfaceEnvents(eventActivateDawControl, onScreenModule, nullptr, nullptr);

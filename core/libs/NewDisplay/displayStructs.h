@@ -155,6 +155,7 @@ typedef enum enControlId
     controlIdDawScreen,
     controlIdQtrlScreen,
     controlIdQ4Screen,
+    controlIdSotiScreen,
 
     /*
      *

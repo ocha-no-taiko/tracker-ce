@@ -1478,6 +1478,7 @@ void cDisplay::controlIdToString(uint8_t id, char* string)
         case controlIdDawScreen: strcpy(string, "dawScreen"); break;
         case controlIdQtrlScreen: strcpy(string, "qtrlScreen"); break;
         case controlIdQ4Screen: strcpy(string, "q4Screen"); break;
+        case controlIdSotiScreen: strcpy(string, "sotiScreen"); break;
         default: strcpy(string, "undefined"); break;
     }
 }

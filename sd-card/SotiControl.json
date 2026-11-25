@@ -1,0 +1,40 @@
+{
+  "controlChannel": 13,
+  "helloCc": 119,
+  "quitMs": 3000,
+  "buttons": {
+    "files": "File",
+    "controls": "Performance",
+    "reset": "Delete",
+    "play": "Play",
+    "exit": "Config"
+  },
+  "screen": {
+    "font": "/Soti.ptfont",
+    "title": "Synthesis of the Images",
+    "filesHeading": "> File: Focus the cursor with File.",
+    "controlsHeading": "> Controls: Focus the cursor with Perform.",
+    "filesHint": "* Select a file using the arrow keys.",
+    "controlsHint": "* Select a parameter using the arrow keys.",
+    "labels": ["Load into A", "Load into B", "Load into C", "Load into All",
+               "SLCT row", "SLCT column", "SLCT All", "QUIT"],
+    "quitAgain": "QUIT?",
+    "params": ["Layer", "Chroma", "Blur", "Resolution", "Space"],
+    "slots": ["A", "B", "C"],
+    "waiting": "Waiting for soti-server...",
+    "noFiles": "No files (media folder on the Mac)",
+    "paused": "PAUSED",
+    "analyzing": "ANALYZING",
+    "colors": {
+      "background": "#121212",
+      "text": "#FFFFFF",
+      "subText": "#B0B0B0",
+      "line": "#FFFFFF",
+      "select": "#FFD24A",
+      "selectedFill": "#3A3A3A",
+      "mark": "#FFD24A",
+      "dim": "#707070",
+      "quit": "#FF5050"
+    }
+  }
+}

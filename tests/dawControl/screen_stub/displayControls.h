@@ -2,7 +2,7 @@
 // Host stub of the display control base (only what dawScreen.cpp uses).
 #include <cstdint>
 #include "displayStructs.h"
-typedef enum { controlIdDawScreen = 100, controlIdQtrlScreen = 101, controlIdQ4Screen = 102 } control_id_t;
+typedef enum { controlIdDawScreen = 100, controlIdQtrlScreen = 101, controlIdQ4Screen = 102, controlIdSotiScreen = 103 } control_id_t;
 enum { controlStyleShow = 1 };
 struct strControlProperties
 {

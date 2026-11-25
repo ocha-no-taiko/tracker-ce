@@ -14,6 +14,7 @@
 #include "core/songTimer.h"
 #include "qtrl/qtrl.h"
 #include "q4/q4.h"
+#include "soti/soti.h"
 
 cDawControl dawControl;
 static cDawControl* DC = &dawControl;
@@ -64,7 +65,7 @@ constexpr uint8_t kSysExHeader[4] = { 0xF0, 0x7D, 0x50, 0x54 };
 // control screens: DAW Control and Q.T.R.L. (qtrl/qtrl.h).
 bool dawControlIsActive()
 {
-    return s_active || qtrlIsActive() || q4IsActive();
+    return s_active || qtrlIsActive() || q4IsActive() || sotiIsActive();
 }
 
 void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, uint8_t data2)
@@ -77,6 +78,11 @@ void dawControlReceiveUsbMidi(uint8_t status, uint8_t channel, uint8_t data1, ui
     if (q4IsActive())
     {
         q4ReceiveUsbMidi(status, channel, data1, data2);
+        return;
+    }
+    if (sotiIsActive())
+    {
+        sotiReceiveUsbMidi(status, channel, data1, data2);
         return;
     }
     if (channel != dawControlConfig.controlChannel)
@@ -102,6 +108,11 @@ void dawControlReceiveUsbSysEx(const uint8_t* data, uint16_t length, bool comple
     if (q4IsActive())
     {
         q4ReceiveUsbSysEx(data, length, complete);
+        return;
+    }
+    if (sotiIsActive())
+    {
+        sotiReceiveUsbSysEx(data, length, complete);
         return;
     }
     for (uint16_t i = 0; i < length; i++)

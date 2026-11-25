@@ -386,6 +386,9 @@ const char qtrlDesc[] = { "Q.T.R.L. (Quick Terminal for Remote & Logs): the Trac
 const char q4Desc[] = { "Q-4: a sound-sculpting sampler made of the Tracker and Ableton Live (needs "
                         "the Q4 remote script). Shift + Config closes it. Settings: /Q4Control.json "
                         "on the SD card." };
+const char sotiDesc[] = { "Synthesis of the Images: three pictures layered by depth and their sounds, "
+                          "played by soti-server on the Mac. Shift + Config closes it. Settings: "
+                          "/SotiControl.json on the SD card." };
 
 const char slaveClockCompDesc[] = { "Allows compensating latency of incoming clock signal by "
                                     "number of clock pulses, where 1 pulse = 1/6 of step. "

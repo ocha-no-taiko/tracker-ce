@@ -12,6 +12,7 @@
 #include "dawControl/dawControl.h"
 #include "qtrl/qtrl.h"
 #include "q4/q4.h"
+#include "soti/soti.h"
 #include "fileBrowser/GlobalFileBrowser.h"
 #include "imageViewer/imageViewer.h"
 #include "instrumentEditor/instrumentEditor.h"
@@ -57,7 +58,7 @@ extern uint8_t isAudioOutMuted();
 //=======================================================================
 //=======================================================================
 
-const uint8_t Interface::modulesCount = 16;
+const uint8_t Interface::modulesCount = 17;
 const hModule Interface::modules[modulesCount] = {
     &projectEditor,    // 0
     &sampleImporter,   // 1
@@ -75,6 +76,7 @@ const hModule Interface::modules[modulesCount] = {
     &dawControl,        // 13
     &qtrl,              // 14
     &q4,                // 15
+    &soti,              // 16
 };
 
 const uint8_t Interface::modulesButtonsCount = 11;
@@ -701,6 +703,15 @@ void interfaceEnvents(uint8_t event, void* param1, void* param2, void* param3)
             if (param1 != nullptr)
                 mtInterface.deactivateModule((hModule)param1);
             mtInterface.activateModule(&q4, 0);
+            break;
+        }
+        case eventActivateSoti:
+        {
+            if (mtInterface.onScreenModule == &soti)
+                break;
+            if (param1 != nullptr)
+                mtInterface.deactivateModule((hModule)param1);
+            mtInterface.activateModule(&soti, 0);
             break;
         }
         case eventToggleActiveModule:

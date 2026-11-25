@@ -261,6 +261,9 @@ cMenuItem melQtrl(menuMidi, "Q.T.R.L.", qtrlDesc, menuTypeItemActionButton, &qtr
 const strItemTypeActionButton q4Setup{ openQ4Action, nullptr };
 cMenuItem melQ4(menuMidi, "Q-4", q4Desc, menuTypeItemActionButton, &q4Setup);
 
+const strItemTypeActionButton sotiSetup{ openSotiAction, nullptr };
+cMenuItem melSoti(menuMidi, "Synthesis of the Images", sotiDesc, menuTypeItemActionButton, &sotiSetup);
+
 //==================================================================================================================================================================
 // Firmware
 const strItemTypeActionButton updateFirmwareSetup{ firmwareUpgradeActivate, nullptr };

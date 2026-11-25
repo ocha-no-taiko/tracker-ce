@@ -1,3 +1,8 @@
+// The 1 MB flash is nearly full; settings are read once when the screen opens.
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC optimize("Os")
+#endif
+
 #include "q4/q4Config.h"
 
 #include <string.h>
